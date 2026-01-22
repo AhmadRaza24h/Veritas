@@ -84,6 +84,68 @@ All calculations and decisions are performed in Python using data structures.
 
 ---
 
+# Flask Routes Documentation
+
+This document defines the planned and required Flask routes for the backend.
+These routes describe how the frontend and JavaScript interact with the backend.
+
+Flask acts only as a routing and coordination layer.
+It does not perform analysis or decision-making logic.
+
+---
+
+## Core Page Routes
+
+These routes return rendered HTML pages and are accessed directly by users.
+
+| Route | Method | Purpose |
+|------|--------|--------|
+| `/` | GET | Home page showing latest news and recommendations |
+| `/news/<id>` | GET | Display a single news article |
+| `/analysis/<id>` | GET | Show detailed analysis for a news item (incident, credibility, perspective) |
+| `/similar/<id>` | GET | Show similar past incidents |
+| `/profile` | GET | User profile and viewing history |
+
+---
+
+## API / Data Routes (Used by JavaScript)
+
+These routes return JSON responses and are consumed by frontend JavaScript.
+
+| Route | Method | Purpose |
+|------|--------|--------|
+| `/api/news` | GET | Fetch paginated news list |
+| `/api/analysis/<id>` | GET | Fetch analysis data in JSON format |
+| `/api/similar/<id>` | GET | Fetch similar incident data |
+| `/api/recommendations` | GET | Fetch recommended news for a user |
+
+---
+
+## Utility / System Routes
+
+These routes are used for system checks and administrative operations.
+
+| Route | Method | Purpose |
+|------|--------|--------|
+| `/health` | GET | Check if backend is running |
+| `/ingest` | POST | Trigger news ingestion (admin/dev only) |
+
+---
+
+## Flask Responsibilities Summary
+
+Flask is responsible for:
+
+- Receiving requests from frontend or JavaScript
+- Validating request parameters
+- Calling Python logic modules
+- Fetching and storing data in PostgreSQL
+- Returning responses (HTML templates or JSON)
+
+Flask does not perform analysis itself.
+
+---
+
 ## Data Structures Usage
 
 Data Structures are explicitly used to justify analytical processing.
