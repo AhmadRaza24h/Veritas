@@ -1,0 +1,79 @@
+{% extends "base/base.html" %}
+
+{% block title %}Home - Veritas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="jumbotron bg-light p-5 rounded mb-4">
+        <h1 class="display-4">Welcome to Veritas</h1>
+        <p class="lead">A data-driven local news portal that analyzes incidents, scores credibility, compares reporting perspectives, and provides personalized recommendations.</p>
+        <hr class="my-4">
+        <p>Explore news with analytical context and make informed decisions.</p>
+        <a class="btn btn-primary btn-lg" href="{{ url_for('news.news_list') }}" role="button">
+            <i class="bi bi-newspaper"></i> Browse News
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Latest News Section -->
+        <div class="col-lg-8">
+            <h2 class="mb-4">Latest News</h2>
+            {% if latest_news %}
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    {% for news in latest_news %}
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ news.title }}</h5>
+                                <p class="card-text">{{ news.summary[:150] }}...</p>
+                                {% if news.source %}
+                                <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                                    {{ news.source.category|capitalize }}
+                                </span>
+                                {% endif %}
+                                {% if news.location %}
+                                <span class="badge bg-secondary">{{ news.location }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">
+                                    {% if news.published_date %}{{ news.published_date.strftime('%b %d, %Y') }}{% endif %}
+                                </small>
+                                <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="btn btn-sm btn-primary float-end">Read More</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">No news available at the moment.</div>
+            {% endif %}
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="col-lg-4">
+            <h3 class="mb-4">Recommended for You</h3>
+            {% if recommendations %}
+                <div class="list-group">
+                    {% for news in recommendations %}
+                    <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ news.title[:60] }}...</h6>
+                        </div>
+                        <p class="mb-1 small">{{ news.summary[:80] if news.summary else '' }}...</p>
+                        <small class="text-muted">
+                            {% if news.incident_type %}
+                            <span class="badge bg-light text-dark">{{ news.incident_type }}</span>
+                            {% endif %}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">No recommendations available.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

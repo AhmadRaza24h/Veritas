@@ -1,0 +1,117 @@
+{% extends "base/base.html" %}
+
+{% block title %}{{ news.title }} - Veritas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- News Article -->
+            <article class="card mb-4">
+                <div class="card-body">
+                    <h1 class="card-title">{{ news.title }}</h1>
+                    
+                    <div class="mb-3">
+                        {% if news.source %}
+                        <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                            {{ news.source.source_name }} ({{ news.source.category|capitalize }})
+                        </span>
+                        {% endif %}
+                        {% if news.location %}
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-geo-alt"></i> {{ news.location }}
+                        </span>
+                        {% endif %}
+                        {% if news.incident_type %}
+                        <span class="badge bg-light text-dark">{{ news.incident_type }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if news.published_date %}
+                    <p class="text-muted">
+                        <i class="bi bi-calendar"></i> {{ news.published_date.strftime('%B %d, %Y') }}
+                    </p>
+                    {% endif %}
+                    
+                    {% if news.summary %}
+                    <div class="alert alert-light">
+                        <strong>Summary:</strong> {{ news.summary }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if news.content %}
+                    <div class="news-content">
+                        {{ news.content }}
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            
+            {% if incident %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle"></i> Related Incident
+                    </h5>
+                    <p>This news is part of a larger incident tracked by Veritas.</p>
+                    <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}" class="btn btn-primary">
+                        <i class="bi bi-bar-chart"></i> View Complete Analysis
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Quick Info -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-info-square"></i> Article Information
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        {% if news.source %}
+                        <li class="mb-2">
+                            <strong>Source:</strong><br>
+                            {{ news.source.source_name }}
+                        </li>
+                        {% endif %}
+                        {% if news.location %}
+                        <li class="mb-2">
+                            <strong>Location:</strong><br>
+                            {{ news.location }}
+                        </li>
+                        {% endif %}
+                        {% if news.incident_type %}
+                        <li class="mb-2">
+                            <strong>Type:</strong><br>
+                            {{ news.incident_type }}
+                        </li>
+                        {% endif %}
+                        {% if news.published_date %}
+                        <li class="mb-2">
+                            <strong>Published:</strong><br>
+                            {{ news.published_date.strftime('%B %d, %Y') }}
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <a href="{{ url_for('news.news_list') }}" class="btn btn-secondary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Back to News
+                    </a>
+                    {% if incident %}
+                    <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}" class="btn btn-primary w-100">
+                        <i class="bi bi-bar-chart"></i> View Analysis
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
