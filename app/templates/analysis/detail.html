@@ -1,0 +1,197 @@
+{% extends "base/base.html" %}
+
+{% block title %}Analysis - {{ incident.incident_type }} - Veritas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Incident Analysis</h2>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Incident Overview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Incident Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Type:</strong> {{ incident.incident_type or 'N/A' }}</p>
+                            <p><strong>Location:</strong> {{ incident.location or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>First Reported:</strong> 
+                                {% if incident.first_reported %}{{ incident.first_reported.strftime('%b %d, %Y') }}{% else %}N/A{% endif %}
+                            </p>
+                            <p><strong>Last Reported:</strong> 
+                                {% if incident.last_reported %}{{ incident.last_reported.strftime('%b %d, %Y') }}{% else %}N/A{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <p><strong>Total News Articles:</strong> {{ incident_news|length }}</p>
+                </div>
+            </div>
+
+            <!-- Credibility Score -->
+            {% if analysis %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Credibility Score</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">{{ analysis.credibility_score }}/100</h2>
+                        <div class="progress" style="width: 60%; height: 30px;">
+                            <div class="progress-bar bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}" 
+                                 role="progressbar" 
+                                 style="width: {{ analysis.credibility_score }}%">
+                                {{ analysis.credibility_score }}%
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted">
+                        Credibility is calculated based on source diversity (40%), location clarity (30%), and completeness of information (30%).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Perspective Distribution -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Perspective Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="perspectiveChart" width="400" height="200"></canvas>
+                    <p class="mt-3 text-muted">{{ analysis.perspective.summary }}</p>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="text-success">{{ analysis.perspective.public_pct }}%</h4>
+                                <p class="small">Public</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="text-info">{{ analysis.perspective.neutral_pct }}%</h4>
+                                <p class="small">Neutral</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="text-warning">{{ analysis.perspective.political_pct }}%</h4>
+                                <p class="small">Political</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Related News Articles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-newspaper"></i> Related News Articles</h5>
+                </div>
+                <div class="card-body">
+                    {% if incident_news %}
+                    <div class="list-group">
+                        {% for news in incident_news %}
+                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ news.title }}</h6>
+                                {% if news.published_date %}
+                                <small>{{ news.published_date.strftime('%b %d') }}</small>
+                                {% endif %}
+                            </div>
+                            {% if news.source %}
+                            <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                                {{ news.source.source_name }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p>No related news articles found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Similar Incidents -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-stack"></i> Similar Incidents</h6>
+                </div>
+                <div class="card-body">
+                    {% if similar_incidents %}
+                    <div class="list-group list-group-flush">
+                        {% for similar in similar_incidents %}
+                        <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}" class="list-group-item list-group-item-action">
+                            <strong>{{ similar.incident_type }}</strong><br>
+                            <small class="text-muted">
+                                {{ similar.location }}<br>
+                                {% if similar.first_reported %}{{ similar.first_reported.strftime('%b %d, %Y') }}{% endif %}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No similar incidents found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <a href="{{ url_for('news.news_list') }}" class="btn btn-secondary w-100">
+                <i class="bi bi-arrow-left"></i> Back to News
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Perspective Distribution Chart
+    {% if analysis %}
+    const ctx = document.getElementById('perspectiveChart');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Public', 'Neutral', 'Political'],
+            datasets: [{
+                data: [
+                    {{ analysis.perspective.public_pct }},
+                    {{ analysis.perspective.neutral_pct }},
+                    {{ analysis.perspective.political_pct }}
+                ],
+                backgroundColor: [
+                    'rgba(25, 135, 84, 0.8)',   // Success green for Public
+                    'rgba(13, 202, 240, 0.8)',  // Info cyan for Neutral
+                    'rgba(255, 193, 7, 0.8)'    // Warning yellow for Political
+                ],
+                borderColor: [
+                    'rgba(25, 135, 84, 1)',
+                    'rgba(13, 202, 240, 1)',
+                    'rgba(255, 193, 7, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
