@@ -1,0 +1,100 @@
+{% extends "base/base.html" %}
+
+{% block title %}News - Veritas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">News Articles</h2>
+    
+    <!-- Search and Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('news.news_list') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="q" placeholder="Search..." value="{{ query or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="location" placeholder="Location" value="{{ location or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="type" placeholder="Incident Type" value="{{ incident_type or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- News List -->
+    {% if pagination.items %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for news in pagination.items %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ news.title }}</h5>
+                        <p class="card-text">{{ news.summary[:120] if news.summary else '' }}...</p>
+                        
+                        <div class="mb-2">
+                            {% if news.source %}
+                            <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                                {{ news.source.category|capitalize }}
+                            </span>
+                            {% endif %}
+                            {% if news.location %}
+                            <span class="badge bg-secondary">{{ news.location }}</span>
+                            {% endif %}
+                            {% if news.incident_type %}
+                            <span class="badge bg-light text-dark">{{ news.incident_type }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">
+                            {% if news.published_date %}{{ news.published_date.strftime('%b %d, %Y') }}{% endif %}
+                        </small>
+                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="btn btn-sm btn-primary float-end">Read More</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('news.news_list', page=pagination.prev_num, q=query, location=location, type=incident_type) }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in range(1, pagination.pages + 1) %}
+                    {% if page_num == pagination.page %}
+                    <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('news.news_list', page=page_num, q=query, location=location, type=incident_type) }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('news.news_list', page=pagination.next_num, q=query, location=location, type=incident_type) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">No news articles found.</div>
+    {% endif %}
+</div>
+{% endblock %}

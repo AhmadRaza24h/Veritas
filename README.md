@@ -1,14 +1,76 @@
-# Veritas (dev)
+# Veritas - News Analytics Platform
 
-### Local News Portal with Analysis of given data 
+### Production-Ready Flask Application with PostgreSQL
+
+A data-driven local news portal that analyzes incidents, scores credibility, compares reporting perspectives (public, neutral, political), identifies similar incidents, and provides personalized recommendations using backend logic and persistent storage.
+
+---
+
+## Tech Stack
+
+- **Backend**: Flask 3.0.0, Python 3.x
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **Frontend**: Bootstrap 5, Chart.js
+- **Migrations**: Flask-Migrate
+- **Architecture**: Blueprint pattern, Factory pattern, Service layer
 
 ---
 
-## Project Overiview
+## Quick Start
 
-Veritas is  data-driven local news portal that analyzes incidents, scores credibility, compares reporting perspectives (public, neutral, political), identifies similar incidents, and provides basic user-based recommendations using backend logic and persistent storage.
+### Prerequisites
+
+- Python 3.8 or higher
+- PostgreSQL 12 or higher
+- pip (Python package manager)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/AhmadRaza24h/Veritas.git
+cd Veritas
+```
+
+2. **Create and activate virtual environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Set up environment variables**
+```bash
+cp .env.example .env
+# Edit .env file with your database credentials
+```
+
+5. **Initialize the database**
+```bash
+# Create database in PostgreSQL
+createdb veritas_dev
+
+# Initialize tables
+python scripts/init_db.py
+
+# Seed with sample data (optional)
+python scripts/seed_data.py
+```
+
+6. **Run the application**
+```bash
+python run.py
+```
+
+The application will be available at `http://localhost:5000`
 
 ---
+
+## Project Overview
 
 ## Problem Statement
 
@@ -107,17 +169,143 @@ For every incident, Veritas shows how coverage is distributed across these three
  
 ---
 
-## Project Status
+## Project Structure
 
-🚧 **Under Development**
+```
+Veritas/
+├── app/
+│   ├── __init__.py           # App factory
+│   ├── config.py             # Configuration classes
+│   ├── extensions.py         # Flask extensions
+│   ├── models/               # Database models
+│   │   ├── user.py
+│   │   ├── source.py
+│   │   ├── news.py
+│   │   ├── incident.py
+│   │   ├── incident_news.py
+│   │   ├── user_history.py
+│   │   └── analysis_cache.py
+│   ├── routes/               # Blueprint routes
+│   │   ├── main.py           # Home page
+│   │   ├── news.py           # News routes
+│   │   ├── analysis.py       # Analysis routes
+│   │   └── api.py            # API endpoints
+│   ├── services/             # Business logic
+│   │   ├── news_service.py
+│   │   └── analysis_service.py
+│   ├── utils/                # Analysis utilities
+│   │   ├── credibility.py
+│   │   ├── perspective.py
+│   │   ├── similarity.py
+│   │   └── recommendations.py
+│   ├── templates/            # Jinja2 templates
+│   │   ├── base/
+│   │   ├── pages/
+│   │   ├── news/
+│   │   ├── analysis/
+│   │   └── errors/
+│   └── static/               # Static assets
+│       ├── css/
+│       ├── js/
+│       └── images/
+├── database/                 # SQL schemas
+├── scripts/                  # Utility scripts
+│   ├── init_db.py
+│   └── seed_data.py
+├── tests/                    # Test files
+├── run.py                    # Application entry point
+├── requirements.txt          # Python dependencies
+├── .env.example             # Environment template
+└── README.md
+```
 
-Planned next steps:
+---
 
-* Finalize database schema
-* Integrate news APIs
-* Implement analysis modules
-* Build frontend pages
-* Test with local Ahmedabad datasets
+## API Endpoints
+
+### Web Routes
+- `GET /` - Home page with latest news and recommendations
+- `GET /news` - News listing (paginated)
+- `GET /news/<id>` - News detail page
+- `GET /analysis/<id>` - Incident analysis page
+
+### API Routes (JSON)
+- `GET /api/news` - News list (JSON)
+- `GET /api/analysis/<id>` - Analysis data (JSON)
+- `GET /api/recommendations` - User recommendations (JSON)
+
+---
+
+## Database Schema
+
+The application uses 7 main tables:
+
+1. **users** - User accounts
+2. **sources** - News sources (with category: public/neutral/political)
+3. **news** - News articles
+4. **incidents** - Grouped incidents
+5. **incident_news** - Many-to-many relationship
+6. **user_history** - User viewing history
+7. **analysis_cache** - Cached analysis results
+
+See `database/schema.sql` for detailed schema.
+
+---
+
+## Analysis Features
+
+### 1. Credibility Scoring
+- **Source diversity** (40%): More independent sources = higher score
+- **Location clarity** (30%): Clear location information
+- **Completeness** (30%): Complete article information
+
+### 2. Perspective Distribution
+- **Public**: Citizen-focused reporting
+- **Neutral**: Fact-based, balanced reporting
+- **Political**: Government and policy-driven reporting
+
+### 3. Similar Incidents
+- Matches by location, category, and date (±30 days)
+
+### 4. Personalized Recommendations
+- Based on user viewing history
+- Tracks category and location preferences
+
+---
+
+## Development
+
+### Running in Development Mode
+```bash
+export FLASK_ENV=development
+export FLASK_DEBUG=1
+python run.py
+```
+
+### Database Migrations
+```bash
+# Initialize migrations (first time only)
+flask db init
+
+# Create a migration
+flask db migrate -m "Description of changes"
+
+# Apply migrations
+flask db upgrade
+```
+
+### Project Status
+
+✅ **Production Ready**
+
+Features implemented:
+* ✅ Complete database schema with relationships
+* ✅ All analysis modules (credibility, perspective, similarity, recommendations)
+* ✅ Responsive Bootstrap 5 UI
+* ✅ Chart.js visualizations
+* ✅ RESTful API endpoints
+* ✅ Error handling (404, 500)
+* ✅ Sample data seeding script
 
 ---
 
