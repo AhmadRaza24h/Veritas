@@ -40,8 +40,9 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
+    # Use SQLite for testing by default if TEST_DATABASE_URL not set
     SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
-        'postgresql://postgres:postgres@localhost:5432/veritas_test'
+        'sqlite:///:memory:'
 
 
 # Configuration dictionary
