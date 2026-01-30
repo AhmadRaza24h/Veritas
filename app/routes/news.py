@@ -13,7 +13,7 @@ news_bp = Blueprint('news', __name__)
 def news_list():
     """News listing page with pagination."""
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)  # Max 100 items per page
     
     # Get filters
     query = request.args.get('q')
@@ -50,10 +50,14 @@ def news_detail(news_id):
         abort(404)
     
     # Track user view (using user_id=1 as default for demo)
-    # In production, this would use the logged-in user's ID
-    history = UserHistory(user_id=1, news_id=news_id)
-    db.session.add(history)
-    db.session.commit()
+    # TODO: Replace with actual user authentication in production
+    try:
+        history = UserHistory(user_id=1, news_id=news_id)
+        db.session.add(history)
+        db.session.commit()
+    except Exception:
+        # Continue even if history tracking fails
+        db.session.rollback()
     
     # Get associated incident
     incident = NewsService.get_incident_for_news(news_id)

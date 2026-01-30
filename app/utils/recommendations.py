@@ -8,6 +8,7 @@ Recommendations:
 """
 from collections import Counter
 from datetime import datetime, timedelta
+from sqlalchemy import or_
 from app.models import UserHistory, News
 from app.extensions import db
 
@@ -63,7 +64,7 @@ def get_recommendations(user_id, limit=10):
     
     # Build recommendation query
     query = db.session.query(News).filter(
-        News.news_id.notin_(viewed_news_ids)  # Exclude already viewed
+        News.news_id.not_in(viewed_news_ids)  # Exclude already viewed
     )
     
     # Filter by preferred categories or locations
@@ -73,7 +74,7 @@ def get_recommendations(user_id, limit=10):
             filters.append(News.incident_type.in_(top_categories))
         if top_locations:
             filters.append(News.location.in_(top_locations))
-        query = query.filter(db.or_(*filters))
+        query = query.filter(or_(*filters))
     
     # Order by recent and limit
     recommendations = query.order_by(News.published_date.desc()).limit(limit).all()
@@ -81,7 +82,7 @@ def get_recommendations(user_id, limit=10):
     # If not enough recommendations, fill with recent news
     if len(recommendations) < limit:
         recent_news = News.query.filter(
-            News.news_id.notin_(viewed_news_ids + [n.news_id for n in recommendations])
+            News.news_id.not_in(viewed_news_ids + [n.news_id for n in recommendations])
         ).order_by(News.published_date.desc()).limit(limit - len(recommendations)).all()
         recommendations.extend(recent_news)
     

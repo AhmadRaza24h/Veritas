@@ -7,6 +7,7 @@ Similar Incident Detection:
 - Within ±30 days
 """
 from datetime import timedelta
+from sqlalchemy import or_, and_
 from app.models import Incident, IncidentNews, News
 from app.extensions import db
 
@@ -55,12 +56,12 @@ def find_similar_incidents(incident, limit=5, days_range=30):
     # Filter by date range (if available)
     if date_from and date_to:
         query = query.filter(
-            db.or_(
-                db.and_(
+            or_(
+                and_(
                     Incident.first_reported >= date_from,
                     Incident.first_reported <= date_to
                 ),
-                db.and_(
+                and_(
                     Incident.last_reported >= date_from,
                     Incident.last_reported <= date_to
                 )

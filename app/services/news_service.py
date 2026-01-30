@@ -1,6 +1,7 @@
 """
 News service for managing news articles and incidents.
 """
+from sqlalchemy import or_
 from app.models import News, Incident, IncidentNews, Source
 from app.extensions import db
 
@@ -53,7 +54,7 @@ class NewsService:
         if query:
             search_filter = f'%{query}%'
             news_query = news_query.filter(
-                db.or_(
+                or_(
                     News.title.ilike(search_filter),
                     News.summary.ilike(search_filter),
                     News.content.ilike(search_filter)

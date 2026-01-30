@@ -19,7 +19,7 @@ class Source(db.Model):
     # Constraint: category must be 'public', 'neutral', or 'political'
     __table_args__ = (
         db.CheckConstraint(
-            category.in_(['public', 'neutral', 'political']),
+            "category IN ('public', 'neutral', 'political')",
             name='check_source_category'
         ),
     )

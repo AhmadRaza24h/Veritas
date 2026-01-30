@@ -11,7 +11,7 @@ api_bp = Blueprint('api', __name__)
 def api_news_list():
     """API endpoint for news list."""
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)  # Max 100 items per page
     
     pagination = NewsService.get_news_paginated(page=page, per_page=per_page)
     
@@ -87,7 +87,7 @@ def api_analysis_detail(incident_id):
 def api_recommendations():
     """API endpoint for recommendations."""
     user_id = request.args.get('user_id', 1, type=int)
-    limit = request.args.get('limit', 10, type=int)
+    limit = min(request.args.get('limit', 10, type=int), 50)  # Max 50 recommendations
     
     recommendations = AnalysisService.get_user_recommendations(user_id, limit=limit)
     
