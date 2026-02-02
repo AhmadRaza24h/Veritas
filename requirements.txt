@@ -1,6 +1,25 @@
+# Core Flask
 Flask==3.0.0
+
+# Database ORM
 Flask-SQLAlchemy==3.1.1
+
+# Database migrations
 Flask-Migrate==4.0.5
-psycopg2-binary==2.9.9
+
+# PostgreSQL driver (try latest version)
+psycopg2-binary
+
+# Environment variables
 python-dotenv==1.0.0
-gunicorn==22.0.0
+
+# HTTP requests
+requests==2.31.0
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# Add these for authentication
+Flask-JWT-Extended==4.6.0
+Flask-Bcrypt==1.0.1
+PyJWT==2.8.0

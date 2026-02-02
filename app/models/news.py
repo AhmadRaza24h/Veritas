@@ -5,7 +5,7 @@ from app.extensions import db
 
 
 class News(db.Model):
-    """News model for storing news articles."""
+    """News article model."""
     
     __tablename__ = 'news'
     
@@ -19,8 +19,19 @@ class News(db.Model):
     published_date = db.Column(db.Date)
     
     # Relationships
-    incidents = db.relationship('IncidentNews', backref='news_article', lazy='dynamic', cascade='all, delete-orphan')
-    history = db.relationship('UserHistory', backref='news_article', lazy='dynamic', cascade='all, delete-orphan')
+    source = db.relationship('Source', backref='news')
     
     def __repr__(self):
         return f'<News {self.title[:50]}>'
+    
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'news_id': self.news_id,
+            'title': self.title,
+            'summary': self.summary,
+            'location': self.location,
+            'incident_type': self.incident_type,
+            'published_date': self.published_date.isoformat() if self.published_date else None,
+            'source': self.source.source_name if self.source else None
+        }

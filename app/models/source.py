@@ -13,10 +13,6 @@ class Source(db.Model):
     source_name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(20), nullable=False)
     
-    # Relationships
-    news = db.relationship('News', backref='source', lazy='dynamic')
-    
-    # Constraint: category must be 'public', 'neutral', or 'political'
     __table_args__ = (
         db.CheckConstraint(
             "category IN ('public', 'neutral', 'political')",

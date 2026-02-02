@@ -1,9 +1,9 @@
 """
-News blueprint for news listing and detail pages.
+News routes with optional authentication.
 """
 from flask import Blueprint, render_template, request, abort
-from app.services import NewsService
-from app.models import UserHistory
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import News, UserHistory
 from app.extensions import db
 
 news_bp = Blueprint('news', __name__)
@@ -11,59 +11,36 @@ news_bp = Blueprint('news', __name__)
 
 @news_bp.route('/')
 def news_list():
-    """News listing page with pagination."""
+    """News listing page (no login required)."""
     page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 20, type=int), 100)  # Max 100 items per page
-    
-    # Get filters
-    query = request.args.get('q')
+    category = request.args.get('category')
     location = request.args.get('location')
-    incident_type = request.args.get('type')
     
-    # Get paginated news
-    if query or location or incident_type:
-        pagination = NewsService.search_news(
-            query=query,
-            location=location,
-            incident_type=incident_type,
-            page=page,
-            per_page=per_page
-        )
-    else:
-        pagination = NewsService.get_news_paginated(page=page, per_page=per_page)
+    query = News.query
     
-    return render_template(
-        'news/list.html',
-        pagination=pagination,
-        query=query,
-        location=location,
-        incident_type=incident_type
+    if category:
+        query = query.filter_by(incident_type=category)
+    if location:
+        query = query.filter(News.location.ilike(f'%{location}%'))
+    
+    pagination = query.order_by(News.published_date.desc()).paginate(
+        page=page, per_page=20, error_out=False
     )
+    
+    return render_template('news/list.html', news=pagination.items, pagination=pagination)
 
 
 @news_bp.route('/<int:news_id>')
+@jwt_required(optional=True)
 def news_detail(news_id):
-    """News detail page."""
-    news = NewsService.get_news_by_id(news_id)
+    """Single news detail page. Saves to history if logged in."""
+    news = News.query.get_or_404(news_id)
     
-    if not news:
-        abort(404)
+    current_user_id = get_jwt_identity()
     
-    # Track user view (using user_id=1 as default for demo)
-    # TODO: Replace with actual user authentication in production
-    try:
-        history = UserHistory(user_id=1, news_id=news_id)
+    if current_user_id:
+        history = UserHistory(user_id=current_user_id, news_id=news_id)
         db.session.add(history)
         db.session.commit()
-    except Exception:
-        # Continue even if history tracking fails
-        db.session.rollback()
     
-    # Get associated incident
-    incident = NewsService.get_incident_for_news(news_id)
-    
-    return render_template(
-        'news/detail.html',
-        news=news,
-        incident=incident
-    )
+    return render_template('news/detail.html', news=news)

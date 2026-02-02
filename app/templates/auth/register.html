@@ -1,0 +1,327 @@
+{% extends "base/base.html" %}
+
+{% block title %}Create Account - Veritas{% endblock %}
+{% block extra_css %}
+<style>
+    /* ===============================
+   Minimal Auth Page Styling
+   =============================== */
+
+    .auth-page-wrapper {
+        min-height: calc(100vh - 56px);
+        background-color: #f8fafc;
+    }
+
+    .auth-container {
+        min-height: calc(100vh - 56px);
+    }
+
+    /* Left Section */
+    .auth-left {
+        background-color: #1b212f;
+        color: #ffffff;
+        padding: 64px 48px;
+        display: flex;
+        align-items: center;
+    }
+
+    .brand-logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+    }
+
+    .auth-left h1 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .auth-left .description {
+        font-size: 1rem;
+        line-height: 1.6;
+        opacity: 0.9;
+    }
+
+    /* Features */
+    .features-grid {
+        margin-top: 2rem;
+    }
+
+    .feature-item {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+
+    /* Right Section */
+    .auth-right {
+        background: #ffffff;
+        padding: 64px 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-form-card {
+        width: 100%;
+        max-width: 420px;
+    }
+
+    /* Form */
+    .form-brand {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-brand h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+
+    .form-brand p {
+        color: #64748b;
+        font-size: 0.95rem;
+    }
+
+    .form-control {
+        height: 46px;
+    }
+
+    .btn-primary {
+        height: 46px;
+        font-weight: 600;
+    }
+
+    /* Divider */
+    .divider {
+        text-align: center;
+        margin: 1.5rem 0;
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+
+    /* Links */
+    .auth-links {
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    .auth-links a {
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    /* Mobile */
+    @media (max-width: 991px) {
+        .auth-left {
+            display: none;
+        }
+
+        .auth-right {
+            padding: 48px 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="auth-page-wrapper">
+    <div class="container-fluid auth-container">
+        <div class="row g-0">
+            <!-- LEFT SECTION - Branding & Features -->
+            <div class="col-lg-6 auth-left">
+                <div>
+                    <!-- Brand Logo -->
+                    <div class="brand-section">
+                        <div class="brand-logo">
+                            <i class="bi bi-shield-check"></i>
+                            <span>VERITAS</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Heading -->
+                    <h1>Connect and engage with Al Jazeera</h1>
+                    <p style="color: #70dfed;">This is not a paywall. It’s free to join.</p>
+
+                    <!-- Description -->
+                    <p class="description">
+                        Access comprehensive news analytics with credibility scoring,
+                        perspective analysis, and personalized insights—all secured
+                        under one unified account.
+                    </p>
+
+                    <!-- Features Grid -->
+                    <div class="features-grid">
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="bi bi-shield-lock"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Unified Access</h4>
+                                <p>Single sign-on for all Veritas services</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Smart Analytics</h4>
+                                <p>AI-powered news credibility scoring</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="bi bi-bookmark-star"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Personalized Feed</h4>
+                                <p>Curated content based on your interests</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="bi bi-bell"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Real-Time Alerts</h4>
+                                <p>Instant notifications for critical updates</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- RIGHT SECTION - Signup Form -->
+            <div class="col-lg-6 auth-right">
+                <div class="auth-form-card">
+                    <!-- Form Brand -->
+                    <div class="form-brand">
+                        <h2 class="text-center mb-4">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </h2>
+
+                        <p>Get started with Veritas today</p>
+                    </div>
+
+                    <!-- Alert -->
+                    <div id="registerAlert" class="alert d-none"></div>
+
+                    <!-- Register Form -->
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username *</label>
+                            <input type="text" class="form-control" id="username" required autofocus>
+                        </div>
+
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" required minlength="6">
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                            <span id="registerBtnText">Create Account</span>
+                            <span id="registerSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                        </button>
+
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="divider">or</div>
+
+                    <!-- Links -->
+                    <div class="text-center">
+                        <p class="mb-2">Already have an account? <a href="{{ url_for('auth.login_page') }}">Login</a>
+                        </p>
+                        <p class="text-muted"><a href="{{ url_for('main.home') }}">Continue as guest</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const alertDiv = document.getElementById('registerAlert');
+        const btnText = document.getElementById('registerBtnText');
+        const spinner = document.getElementById('registerSpinner');
+
+        if (password !== confirmPassword) {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Passwords do not match';
+            alertDiv.classList.remove('d-none');
+            return;
+        }
+
+        btnText.classList.add('d-none');
+        spinner.classList.remove('d-none');
+        alertDiv.classList.add('d-none');
+
+        try {
+            const response = await fetch('/auth/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                alertDiv.className = 'alert alert-success';
+                alertDiv.innerHTML = '<i class="bi bi-check-circle-fill"></i> Account created successfully! Redirecting...';
+                alertDiv.classList.remove('d-none');
+
+                setTimeout(() => window.location.href = '/', 1000);
+            } else {
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + (data.error || 'Registration failed');
+                alertDiv.classList.remove('d-none');
+
+                btnText.classList.remove('d-none');
+                spinner.classList.add('d-none');
+            }
+        } catch (error) {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> An error occurred. Please try again.';
+            alertDiv.classList.remove('d-none');
+
+            btnText.classList.remove('d-none');
+            spinner.classList.add('d-none');
+        }
+    });
+</script>
+{% endblock %}
