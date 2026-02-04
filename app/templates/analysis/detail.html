@@ -44,7 +44,8 @@
                         <div class="progress" style="width: 60%; height: 30px;">
                             <div class="progress-bar bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}" 
                                  role="progressbar" 
-                                 style="width: {{ analysis.credibility_score }}%">
+                                      style="--score: {{ analysis['credibility_score'] | int }};">
+
                                 {{ analysis.credibility_score }}%
                             </div>
                         </div>

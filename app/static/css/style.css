@@ -55,6 +55,7 @@ footer {
 
 .progress-bar {
     font-weight: bold;
+    width: calc(var(--score) * 1%)
 }
 
 /* List group styling */

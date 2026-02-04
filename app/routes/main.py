@@ -5,6 +5,7 @@ from flask import Blueprint, render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import News
 from app.utils.recommendations import get_recommendations
+from sqlalchemy import text
 
 main_bp = Blueprint('main', __name__)
 
@@ -32,7 +33,7 @@ def health():
     """Health check endpoint."""
     from app.extensions import db
     try:
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return {'status': 'ok', 'database': 'connected'}, 200
     except Exception as e:
         return {'status': 'error', 'database': 'disconnected', 'error': str(e)}, 500

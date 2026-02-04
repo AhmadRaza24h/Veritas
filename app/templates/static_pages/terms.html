@@ -1,0 +1,187 @@
+{% extends 'base/base.html' %}
+
+{% block title %}
+Terms of Use - Veritas
+{% endblock title %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+  <h1 class="fw-bold mb-3">Terms of Use</h1>
+  <p class="lead text-muted mb-4">
+    These Terms of Use govern access to and use of the Veritas platform.
+  </p>
+
+  <div class="accordion" id="termsAccordion">
+
+    <!-- Acceptance -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#acceptance">
+          Acceptance of Terms
+        </button>
+      </h2>
+      <div id="acceptance" class="accordion-collapse collapse show" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            By accessing or using Veritas, you agree to comply with these Terms of Use.
+            If you do not agree, please refrain from using the platform.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Purpose -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#purpose">
+          Purpose of the Platform
+        </button>
+      </h2>
+      <div id="purpose" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            Veritas is an analytical news platform intended to provide structured
+            insights into local news reporting.
+          </p>
+          <p class="mb-0">
+            The platform is for informational and educational purposes only.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Guarantees -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#noGuarantees">
+          No Guarantees or Warranties
+        </button>
+      </h2>
+      <div id="noGuarantees" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            Veritas does not guarantee the accuracy, completeness, or timeliness
+            of content or analytical results.
+          </p>
+          <p class="mb-0">
+            All analysis is derived from available data and predefined rules.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Responsibilities -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#responsibilities">
+          User Responsibilities
+        </button>
+      </h2>
+      <div id="responsibilities" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <ul class="mb-0">
+            <li>Use the platform in a lawful and respectful manner</li>
+            <li>Do not attempt to disrupt or misuse system functionality</li>
+            <li>Do not misrepresent analytical results as factual conclusions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Sources -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#contentSources">
+          Content Sources & Ownership
+        </button>
+      </h2>
+      <div id="contentSources" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            News articles displayed on Veritas originate from third-party sources.
+            Ownership of content remains with the original publishers.
+          </p>
+          <p class="mb-0">
+            Veritas does not claim ownership of third-party news content.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liability -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#liability">
+          Limitation of Liability
+        </button>
+      </h2>
+      <div id="liability" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            Veritas and its contributors shall not be held liable for any direct
+            or indirect damages arising from the use of the platform.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Changes -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#changes">
+          Changes to the Terms
+        </button>
+      </h2>
+      <div id="changes" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p>
+            These Terms of Use may be updated as the platform evolves.
+          </p>
+          <p class="mb-0">
+            Continued use of Veritas after changes constitutes acceptance
+            of the revised terms.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Governing Context -->
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#governing">
+          Governing Context
+        </button>
+      </h2>
+      <div id="governing" class="accordion-collapse collapse" data-bs-parent="#termsAccordion">
+        <div class="accordion-body">
+          <p class="mb-0">
+            Veritas is developed as an academic and analytical project and is
+            subject to applicable local laws and regulations.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Contact (outside accordion) -->
+  <section class="mt-5">
+    <h3 class="fw-semibold">Contact</h3>
+    <p class="mb-0">
+      For questions regarding these terms:
+      <br>
+      <a href="mailto:contact@veritas.example">contact@veritas.example</a>
+    </p>
+  </section>
+
+  <hr class="mt-5">
+
+  <p class="fst-italic text-muted text-center">
+    Veritas aims to inform, not persuade.
+  </p>
+
+</div>
+
+{% endblock content %}

@@ -1,0 +1,149 @@
+{% extends 'base/base.html' %}
+
+{% block title %}
+About Veritas
+{% endblock title %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+  <!-- Page Header -->
+  <div class="mb-4">
+    <h1 class="fw-bold">About Veritas</h1>
+    <p class="lead text-muted">
+      Veritas is a data-driven local news analytics platform designed to bring clarity,
+      context, and structure to incident-based news reporting.
+    </p>
+  </div>
+
+  <!-- Mission -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Our Mission</h3>
+    <p>
+      Local news often reaches readers through a single source or without analytical context,
+      making it difficult to assess credibility or understand the broader picture.
+      Veritas exists to solve this problem.
+    </p>
+    <p>
+      Our mission is to help readers <strong>see the full picture</strong> by aggregating multiple
+      reports of the same incident and presenting structured insights instead of opinions.
+    </p>
+  </section>
+
+  <!-- What Veritas Does -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">What Veritas Does</h3>
+    <ul>
+      <li>Aggregates local news articles from multiple independent sources</li>
+      <li>Groups related articles into a single tracked incident</li>
+      <li>Analyzes incidents using transparent, rule-based logic</li>
+      <li>Visualizes credibility, perspective distribution, and patterns</li>
+    </ul>
+    <p class="text-muted">
+      Veritas does not generate opinions, headlines, or political commentary.
+      It focuses entirely on structured analysis.
+    </p>
+  </section>
+
+  <!-- Analysis Philosophy -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Analysis Philosophy</h3>
+    <p>
+      Veritas is built on the principle that <strong>analysis should be explainable</strong>.
+      Every score and visualization is derived from clearly defined rules.
+    </p>
+    <ul>
+      <li>No sentiment analysis or opinion mining</li>
+      <li>No machine learning black boxes</li>
+      <li>No editorial bias or subjective judgments</li>
+    </ul>
+    <p>
+      Reporting perspectives are classified using predefined source metadata:
+      <strong>Public</strong>, <strong>Neutral</strong>, and <strong>Political</strong>.
+    </p>
+  </section>
+
+  <!-- Credibility & Perspective -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Credibility & Perspective</h3>
+    <p>
+      Each incident analyzed by Veritas receives a credibility score based on:
+    </p>
+    <ul>
+      <li><strong>Source diversity (40%)</strong> – independent reporting across outlets</li>
+      <li><strong>Location clarity (30%)</strong> – clear and consistent geographic information</li>
+      <li><strong>Completeness (30%)</strong> – presence of key factual details</li>
+    </ul>
+    <p>
+      Perspective distribution highlights how coverage is divided among public-focused,
+      neutral, and political reporting styles.
+    </p>
+  </section>
+
+  <!-- Technology -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Technology & Architecture</h3>
+    <p>
+      Veritas is built as a production-ready web application using modern, maintainable
+      architecture principles.
+    </p>
+    <ul>
+      <li>Flask with Blueprint and Factory patterns</li>
+      <li>PostgreSQL with SQLAlchemy ORM</li>
+      <li>Service-layer–driven backend logic</li>
+      <li>Bootstrap 5 and Chart.js for visualization</li>
+    </ul>
+    <p class="text-muted">
+      All analysis logic lives on the backend. The frontend is responsible only for
+      presentation.
+    </p>
+  </section>
+
+  <!-- Academic Context -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Academic & Design Context</h3>
+    <p>
+      Veritas is designed as an analysis-focused system rather than a content platform.
+      It emphasizes data structures, relational modeling, and rule-based evaluation.
+    </p>
+    <p>
+      The project avoids subjective interpretation and is suitable for academic,
+      technical, and demonstrative use cases.
+    </p>
+  </section>
+
+  <!-- Contribution -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Contributing & Feedback</h3>
+    <p>
+      Veritas is under active development and welcomes structured contributions from team members.
+    </p>
+    <ul>
+      <li>News data collection and source expansion</li>
+      <li>Analysis logic improvements</li>
+      <li>Frontend UI refinement</li>
+      <li>Database and performance optimization</li>
+    </ul>
+  </section>
+
+  <!-- Contact -->
+  <section class="mb-5">
+    <h3 class="fw-semibold">Contact</h3>
+    <p>
+      For feedback, corrections, or collaboration inquiries:
+      <br>
+      <a href="mailto:contact@veritas.example">contact@veritas.example</a>
+    </p>
+  </section>
+
+  <hr>
+
+  <!-- Closing Statement -->
+  <p class="fst-italic text-muted text-center">
+    “Truth becomes clearer when seen from more than one angle.”
+  </p>
+
+</div>
+
+{% endblock content %}

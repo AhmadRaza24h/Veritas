@@ -3,7 +3,7 @@ News routes with optional authentication.
 """
 from flask import Blueprint, render_template, request, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import News, UserHistory
+from app.models import News, UserHistory,Incident
 from app.extensions import db
 
 news_bp = Blueprint('news', __name__)
@@ -35,6 +35,10 @@ def news_list():
 def news_detail(news_id):
     """Single news detail page. Saves to history if logged in."""
     news = News.query.get_or_404(news_id)
+    incident = Incident.query.filter_by(
+    incident_type=news.incident_type,
+    location=news.location).first()
+
     
     current_user_id = get_jwt_identity()
     
@@ -43,4 +47,4 @@ def news_detail(news_id):
         db.session.add(history)
         db.session.commit()
     
-    return render_template('news/detail.html', news=news)
+    return render_template('news/detail.html', news=news,incident=incident,)
