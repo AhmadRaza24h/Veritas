@@ -17,6 +17,9 @@ class News(db.Model):
     location = db.Column(db.String(100))
     incident_type = db.Column(db.String(50))
     published_date = db.Column(db.Date)
+    image_url = db.Column(db.String(1000))  # Store image URL
+    
+
     
     # Relationships
     source = db.relationship('Source', backref='news')

@@ -104,3 +104,45 @@ def api_recommendations():
             for news in recommendations
         ]
     })
+@api_bp.route('/scheduler/jobs')
+def get_scheduler_jobs():
+    """Get list of scheduled jobs and their status."""
+    from app.services.scheduler_service import scheduler_service
+    
+    jobs = scheduler_service.get_jobs()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'jobs': jobs,
+            'scheduler_running': scheduler_service.scheduler.running,
+            'total_jobs': len(jobs)
+        }
+    })
+
+
+@api_bp.route('/scheduler/stats')
+def get_scheduler_stats():
+    """Get data ingestion statistics."""
+    from app.models import Source
+    
+    # Count news by source
+    sources = Source.query.all()
+    stats = []
+    
+    for source in sources:
+        stats.append({
+            'source_name': source.source_name,
+            'category': source.category,
+            'news_count': len(source.news)
+        })
+    
+    total_news = News.query.count()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'total_news': total_news,
+            'sources': stats
+        }
+    })

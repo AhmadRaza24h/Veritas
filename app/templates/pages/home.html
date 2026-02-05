@@ -3,77 +3,184 @@
 {% block title %}Home - Veritas{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Hero Section -->
-    <div class="jumbotron bg-light p-5 rounded mb-4">
-        <h1 class="display-4">Welcome to Veritas</h1>
-        <p class="lead">A data-driven local news portal that analyzes incidents, scores credibility, compares reporting perspectives, and provides personalized recommendations.</p>
-        <hr class="my-4">
-        <p>Explore news with analytical context and make informed decisions.</p>
-        <a class="btn btn-primary btn-lg" href="{{ url_for('news.news_list') }}" role="button">
-            <i class="bi bi-newspaper"></i> Browse News
-        </a>
-    </div>
-
-    <div class="row">
-        <!-- Latest News Section -->
-        <div class="col-lg-8">
-            <h2 class="mb-4">Latest News</h2>
-            {% if latest_news %}
-                <div class="row row-cols-1 row-cols-md-2 g-4">
-                    {% for news in latest_news %}
-                    <div class="col">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ news.title }}</h5>
-                                <p class="card-text">{{ news.summary[:150] }}...</p>
-                                {% if news.source %}
-                                <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
-                                    {{ news.source.category|capitalize }}
-                                </span>
-                                {% endif %}
-                                {% if news.location %}
-                                <span class="badge bg-secondary">{{ news.location }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="card-footer">
-                                <small class="text-muted">
-                                    {% if news.published_date %}{{ news.published_date.strftime('%b %d, %Y') }}{% endif %}
-                                </small>
-                                <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="btn btn-sm btn-primary float-end">Read More</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-info">No news available at the moment.</div>
-            {% endif %}
-        </div>
-
-        <!-- Recommendations Section -->
-        <div class="col-lg-4">
-            <h3 class="mb-4">Recommended for You</h3>
-            {% if recommendations %}
-                <div class="list-group">
-                    {% for news in recommendations %}
-                    <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ news.title[:60] }}...</h6>
-                        </div>
-                        <p class="mb-1 small">{{ news.summary[:80] if news.summary else '' }}...</p>
-                        <small class="text-muted">
-                            {% if news.incident_type %}
-                            <span class="badge bg-light text-dark">{{ news.incident_type }}</span>
-                            {% endif %}
-                        </small>
+<!-- Hero Section -->
+<div class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-shield-check"></i> Veritas
+                </h1>
+                <p class="lead mb-4">
+                    Your trusted source for verified Ahmedabad local news with credibility analysis
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('news.news_list') }}" class="btn btn-light btn-lg">
+                        <i class="bi bi-newspaper"></i> Browse News
                     </a>
-                    {% endfor %}
+                    {% if not current_user %}
+                    <a href="{{ url_for('auth.register_page') }}" class="btn btn-outline-light btn-lg">
+                        Get Started
+                    </a>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="alert alert-info">No recommendations available.</div>
-            {% endif %}
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="bi bi-graph-up-arrow" style="font-size: 8rem; opacity: 0.3;"></i>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Latest News Section -->
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold mb-3">
+                <i class="bi bi-clock-history"></i> Latest News
+            </h2>
+            <p class="text-muted">Recent news from Ahmedabad with credibility analysis</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for news_item in latest_news %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm hover-shadow">
+                <!-- NEWS IMAGE -->
+                {% if news_item.image_url %}
+                <img src="{{ news_item.image_url }}" class="card-img-top" alt="{{ news_item.title }}"
+                    style="height: 200px; object-fit: cover;"
+                    onerror="this.src='https://via.placeholder.com/400x200/0d6efd/ffffff?text={{ news_item.incident_type }}'">
+                {% else %}
+                <!-- Fallback: Category-based placeholder -->
+                <div class="card-img-top d-flex align-items-center justify-content-center bg-light"
+                    style="height: 200px;">
+                    <div class="text-center">
+                        {% if news_item.incident_type == 'Accident' %}
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        {% elif news_item.incident_type == 'Crime' %}
+                        <i class="bi bi-shield-exclamation text-warning" style="font-size: 3rem;"></i>
+                        {% elif news_item.incident_type == 'Weather' %}
+                        <i class="bi bi-cloud-rain text-info" style="font-size: 3rem;"></i>
+                        {% elif news_item.incident_type == 'Traffic' %}
+                        <i class="bi bi-car-front text-secondary" style="font-size: 3rem;"></i>
+                        {% elif news_item.incident_type == 'Politics' %}
+                        <i class="bi bi-building text-primary" style="font-size: 3rem;"></i>
+                        {% else %}
+                        <i class="bi bi-newspaper text-muted" style="font-size: 3rem;"></i>
+                        {% endif %}
+                        <p class="mt-2 text-muted">{{ news_item.incident_type }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card-body">
+                    <!-- Category Badge -->
+                    <span class="badge bg-primary mb-2">{{ news_item.incident_type }}</span>
+
+                    <!-- Title -->
+                    <h5 class="card-title">
+                        <a href="{{ url_for('news.news_detail', news_id=news_item.news_id) }}"
+                            class="text-decoration-none text-dark">
+                            {{ news_item.title[:80] }}{% if news_item.title|length > 80 %}...{% endif %}
+                        </a>
+                    </h5>
+
+                    <!-- Summary -->
+                    {% if news_item.summary %}
+                    <p class="card-text text-muted small">
+                        {{ news_item.summary[:120] }}{% if news_item.summary|length > 120 %}...{% endif %}
+                    </p>
+                    {% endif %}
+
+                    <!-- Meta Info -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt"></i> {{ news_item.location }}
+                        </small>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar"></i> {{ news_item.published_date.strftime('%d %b') }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white border-0">
+                    <a href="{{ url_for('news.news_detail', news_id=news_item.news_id) }}"
+                        class="btn btn-sm btn-outline-primary w-100">
+                        Read More <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- View All Button -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('news.news_list') }}" class="btn btn-primary btn-lg">
+            View All News <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Recommendations Section -->
+{% if recommendations %}
+<div class="bg-light py-5">
+    <div class="container">
+        <h2 class="fw-bold mb-4">
+            <i class="bi bi-stars"></i>
+            {% if current_user %}
+            Recommended For You
+            {% else %}
+            Popular News
+            {% endif %}
+        </h2>
+
+        <div class="row g-3">
+            {% for rec in recommendations %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="badge bg-secondary mb-2">{{ rec.incident_type }}</span>
+                        <h6 class="card-title">
+                            <a href="{{ url_for('news.news_detail', news_id=rec.news_id) }}"
+                                class="text-decoration-none">
+                                {{ rec.title[:60] }}...
+                            </a>
+                        </h6>
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt"></i> {{ rec.location }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .hover-shadow {
+        transition: all 0.3s ease;
+    }
+
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .card-img-top {
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+
+    .card {
+        overflow: hidden;
+    }
+</style>
 {% endblock %}

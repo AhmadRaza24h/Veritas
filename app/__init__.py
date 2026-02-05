@@ -1,5 +1,5 @@
 """
-Flask Application Factory with JWT support.
+Flask Application Factory with Scheduler.
 """
 from flask import Flask
 from app.config import config
@@ -18,6 +18,10 @@ def create_app(config_name='development'):
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
+    
+    # Initialize scheduler
+    from app.services.scheduler_service import scheduler_service
+    scheduler_service.init_app(app)
     
     # Register blueprints
     register_blueprints(app)
