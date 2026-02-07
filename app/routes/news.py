@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, jsonify
 from app.models import News
 from app.extensions import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import UserHistory
+from app.models import News, UserHistory,Incident
 from datetime import datetime
 
 news_bp = Blueprint('news', __name__)
@@ -42,6 +42,9 @@ def news_list():
 def news_detail(news_id):
     """Display individual news article."""
     news = News.query.get_or_404(news_id)
+    incident = Incident.query.filter_by(
+    incident_type=news.incident_type,
+    location=news.location).first()
     
     # Track user history if logged in
     current_user_id = get_jwt_identity()
@@ -61,7 +64,7 @@ def news_detail(news_id):
             db.session.add(history)
             db.session.commit()
     
-    return render_template('news/detail.html', news=news)
+    return render_template('news/detail.html', news=news, incident=incident )
 
 
 @news_bp.route('/search')

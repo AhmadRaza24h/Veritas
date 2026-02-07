@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-4">Incident Analysis</h2>
-    
+
     <div class="row">
         <div class="col-lg-8">
             <!-- Incident Overview -->
@@ -20,11 +20,13 @@
                             <p><strong>Location:</strong> {{ incident.location or 'N/A' }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>First Reported:</strong> 
-                                {% if incident.first_reported %}{{ incident.first_reported.strftime('%b %d, %Y') }}{% else %}N/A{% endif %}
+                            <p><strong>First Reported:</strong>
+                                {% if incident.first_reported %}{{ incident.first_reported.strftime('%b %d, %Y') }}{%
+                                else %}N/A{% endif %}
                             </p>
-                            <p><strong>Last Reported:</strong> 
-                                {% if incident.last_reported %}{{ incident.last_reported.strftime('%b %d, %Y') }}{% else %}N/A{% endif %}
+                            <p><strong>Last Reported:</strong>
+                                {% if incident.last_reported %}{{ incident.last_reported.strftime('%b %d, %Y') }}{% else
+                                %}N/A{% endif %}
                             </p>
                         </div>
                     </div>
@@ -42,15 +44,16 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2 class="mb-0">{{ analysis.credibility_score }}/100</h2>
                         <div class="progress" style="width: 60%; height: 30px;">
-                            <div class="progress-bar bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}" 
-                                 role="progressbar" 
-                                 style="width: {{ analysis.credibility_score }}%">
+                            <div class="progress-bar bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}"
+                                role="progressbar" style="--score: {{ analysis['credibility_score'] | int }};">
+
                                 {{ analysis.credibility_score }}%
                             </div>
                         </div>
                     </div>
                     <p class="text-muted">
-                        Credibility is calculated based on source diversity (40%), location clarity (30%), and completeness of information (30%).
+                        Credibility is calculated based on source diversity (40%), location clarity (30%), and
+                        completeness of information (30%).
                     </p>
                 </div>
             </div>
@@ -63,7 +66,7 @@
                 <div class="card-body">
                     <canvas id="perspectiveChart" width="400" height="200"></canvas>
                     <p class="mt-3 text-muted">{{ analysis.perspective.summary }}</p>
-                    
+
                     <div class="row mt-3">
                         <div class="col-md-4">
                             <div class="text-center">
@@ -97,7 +100,8 @@
                     {% if incident_news %}
                     <div class="list-group">
                         {% for news in incident_news %}
-                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="list-group-item list-group-item-action">
+                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}"
+                            class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ news.title }}</h6>
                                 {% if news.published_date %}
@@ -105,7 +109,8 @@
                                 {% endif %}
                             </div>
                             {% if news.source %}
-                            <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                            <span
+                                class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
                                 {{ news.source.source_name }}
                             </span>
                             {% endif %}
@@ -130,11 +135,13 @@
                     {% if similar_incidents %}
                     <div class="list-group list-group-flush">
                         {% for similar in similar_incidents %}
-                        <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}" class="list-group-item list-group-item-action">
+                        <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}"
+                            class="list-group-item list-group-item-action">
                             <strong>{{ similar.incident_type }}</strong><br>
                             <small class="text-muted">
                                 {{ similar.location }}<br>
-                                {% if similar.first_reported %}{{ similar.first_reported.strftime('%b %d, %Y') }}{% endif %}
+                                {% if similar.first_reported %}{{ similar.first_reported.strftime('%b %d, %Y') }}{%
+                                endif %}
                             </small>
                         </a>
                         {% endfor %}
@@ -166,31 +173,31 @@
             datasets: [{
                 data: [
                     {{ analysis.perspective.public_pct }},
-                    {{ analysis.perspective.neutral_pct }},
+            {{ analysis.perspective.neutral_pct }},
                     {{ analysis.perspective.political_pct }}
                 ],
-                backgroundColor: [
-                    'rgba(25, 135, 84, 0.8)',   // Success green for Public
-                    'rgba(13, 202, 240, 0.8)',  // Info cyan for Neutral
-                    'rgba(255, 193, 7, 0.8)'    // Warning yellow for Political
-                ],
-                borderColor: [
-                    'rgba(25, 135, 84, 1)',
-                    'rgba(13, 202, 240, 1)',
-                    'rgba(255, 193, 7, 1)'
-                ],
-                borderWidth: 1
+        backgroundColor: [
+        'rgba(25, 135, 84, 0.8)',   // Success green for Public
+        'rgba(13, 202, 240, 0.8)',  // Info cyan for Neutral
+        'rgba(255, 193, 7, 0.8)'    // Warning yellow for Political
+    ],
+        borderColor: [
+        'rgba(25, 135, 84, 1)',
+        'rgba(13, 202, 240, 1)',
+        'rgba(255, 193, 7, 1)'
+    ],
+        borderWidth: 1
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                }
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
             }
         }
+    }
     });
     {% endif %}
 </script>

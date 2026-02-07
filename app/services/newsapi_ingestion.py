@@ -1,6 +1,6 @@
 """
 NewsAPI ingestion service - Ahmedabad Local News ONLY.
-Optimized for quality and accuracy.
+Optimized for quality and accuracy with AUTO-INCIDENT CREATION.
 """
 import requests
 from datetime import datetime, timedelta
@@ -25,11 +25,11 @@ class NewsAPIIngestionService:
     
     def fetch_ahmedabad_news(self, page_size=30, days=29):
         """
-        Fetch Ahmedabad-specific news from NewsAPI.
+        Fetch Ahmedabad-specific news from NewsAPI with AUTO-INCIDENT CREATION.
         
         Args:
             page_size: Number of articles per request (default: 30)
-            days: Number of days to look back (default: 7)
+            days: Number of days to look back (default: 29)
         
         Returns:
             int: Number of articles stored
@@ -50,7 +50,7 @@ class NewsAPIIngestionService:
                 'to': to_date.strftime('%Y-%m-%d'),
                 'language': 'en',
                 'sortBy': 'publishedAt',
-                'pageSize': page_size,  # Configurable
+                'pageSize': page_size,
                 'apiKey': self.api_key
             }
             
@@ -85,7 +85,9 @@ class NewsAPIIngestionService:
             return 0
     
     def _process_articles(self, articles):
-        """Process and store articles with strict Ahmedabad filtering."""
+        """Process and store articles with AUTO-INCIDENT CREATION."""
+        from app.services import NewsService  # ⭐ IMPORT HERE
+        
         stored_count = 0
         skipped_duplicate = 0
         skipped_location = 0
@@ -94,11 +96,6 @@ class NewsAPIIngestionService:
             try:
                 # Skip removed/deleted articles
                 if not article.get('title') or article['title'] == '[Removed]':
-                    continue
-                
-                # Check if duplicate (by title)
-                if News.query.filter_by(title=article['title']).first():
-                    skipped_duplicate += 1
                     continue
                 
                 # STRICT location check
@@ -138,55 +135,50 @@ class NewsAPIIngestionService:
                 except:
                     published_date = datetime.utcnow().date()
                 
-                # Get image URL (NewsAPI provides this!)
+                # Get image URL
                 image_url = article.get('urlToImage')
-                
-                # Validate image URL
                 if image_url:
-                    # Remove query parameters that might cause issues
                     image_url = image_url.split('?')[0] if '?' in image_url else image_url
-                    # Basic validation
                     if not image_url.startswith('http'):
                         image_url = None
                 
-                # Create news entry
-                news = News(
-                    source_id=source.source_id,
+                # ⭐ CHANGED: Use add_news_with_incident instead of direct News creation
+                news, incident = NewsService.add_news_with_incident(
                     title=article['title'][:500],
-                    summary=article.get('description', '')[:500] if article.get('description') else None,
                     content=article.get('content', article.get('description', ''))[:2000],
+                    summary=article.get('description', '')[:500] if article.get('description') else None,
                     location=location,
                     incident_type=incident_type,
-                    published_date=published_date,
-                    image_url=image_url
+                    source_id=source.source_id,
+                    published_date=published_date
                 )
                 
-                db.session.add(news)
-                stored_count += 1
+                # ⭐ Update image_url if news was created
+                if news and image_url:
+                    news.image_url = image_url
+                    db.session.commit()
+                
+                if news and incident:
+                    stored_count += 1
+                    logger.info(f"  ✅ {news.title[:50]}... → Incident {incident.incident_id}")
+                elif news:
+                    skipped_duplicate += 1
                 
             except Exception as e:
                 logger.error(f"❌ Error processing article: {e}")
+                db.session.rollback()
                 continue
         
-        # Commit all at once
-        try:
-            db.session.commit()
-            
-            # Log statistics
-            logger.info(f"  📊 Skipped duplicates: {skipped_duplicate}")
-            logger.info(f"  📊 Skipped non-Ahmedabad: {skipped_location}")
-            
-        except Exception as e:
-            logger.error(f"❌ Database commit failed: {e}")
-            db.session.rollback()
-            return 0
+        # Log statistics
+        logger.info(f"  📊 Skipped duplicates: {skipped_duplicate}")
+        logger.info(f"  📊 Skipped non-Ahmedabad: {skipped_location}")
         
         return stored_count
     
     def _extract_ahmedabad_location(self, text):
         """
-        SMART Ahmedabad location extraction.
-        More lenient but still accurate.
+        STRICT Ahmedabad location extraction.
+        Only Ahmedabad, Gandhinagar, and surrounding districts.
         """
         text_lower = text.lower()
         text_clean = re.sub(r'[^\w\s]', ' ', text_lower)
@@ -216,35 +208,30 @@ class NewsAPIIngestionService:
         if 'gandhinagar' in text_clean:
             return 'Gandhinagar, Gujarat'
     
-        # PRIORITY 3: Gujarat WITH Ahmedabad metro cities
-        gujarat_cities_near_ahmedabad = {
+        # PRIORITY 3: Ahmedabad District cities
+        ahmedabad_district_cities = {
             'sanand': 'Sanand, Ahmedabad District',
             'bavla': 'Bavla, Ahmedabad District',
             'dholka': 'Dholka, Ahmedabad District',
             'viramgam': 'Viramgam, Ahmedabad District',
         }
     
-        for city, location in gujarat_cities_near_ahmedabad.items():
+        for city, location in ahmedabad_district_cities.items():
             if city in text_clean:
                 return location
     
-        # PRIORITY 4: Gujarat state news (broader but still relevant)
-        if 'gujarat' in text_clean:
-            # Accept if it's clearly Gujarat state news
-            # This will capture: "Gujarat government", "Gujarat CM", etc.
-            return 'Gujarat'
-    
-        # PRIORITY 5: IIT Gandhinagar, PDPU, etc (educational institutions)
+        # PRIORITY 4: Educational institutions in Ahmedabad
         educational_keywords = [
             'iit gandhinagar', 'pdpu', 'nid ahmedabad', 'cept', 
-            'ld engineering', 'nirma university'
+            'ld engineering', 'nirma university', 'gift city'
         ]
     
         for keyword in educational_keywords:
             if keyword in text_clean:
                 return 'Ahmedabad, Gujarat'
     
-        return None  # Only reject if clearly NOT Gujarat/Ahmedabad
+        # ⭐ STRICT: Reject anything else (no generic Gujarat news)
+        return None
     
     def _categorize_source(self, source_name):
         """Categorize news source."""

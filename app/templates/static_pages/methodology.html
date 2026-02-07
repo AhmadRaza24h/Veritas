@@ -1,0 +1,201 @@
+{% extends 'base/base.html' %}
+
+{% block title %}
+Methodology - Veritas
+{% endblock title %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 class="fw-bold">Methodology</h1>
+        <p class="lead text-muted">
+            This page explains how Veritas analyzes news data, groups incidents,
+            calculates credibility, and presents structured insights.
+        </p>
+    </div>
+
+    <!-- Design Philosophy -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">Design Philosophy</h3>
+        <p>
+            Veritas follows a <strong>rule-based, explainable analysis model</strong>.
+            Every metric shown on the platform is derived from transparent logic
+            rather than opaque machine learning systems.
+        </p>
+        <ul>
+            <li>No sentiment analysis</li>
+            <li>No opinion scoring</li>
+            <li>No automated editorial judgments</li>
+            <li>No black-box machine learning models</li>
+        </ul>
+        <p>
+            The goal is to assist understanding, not to influence viewpoints.
+        </p>
+    </section>
+
+    <!-- Data Collection -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">1. Data Collection</h3>
+        <p>
+            News articles are collected from predefined and verified news sources.
+            Each source is stored with associated metadata such as category and reliability.
+        </p>
+        <ul>
+            <li>Articles are fetched using APIs or structured feeds</li>
+            <li>Duplicate articles are removed</li>
+            <li>Articles are normalized for consistent storage</li>
+        </ul>
+        <p class="text-muted">
+            Only publicly available news content is used.
+        </p>
+    </section>
+
+    <!-- Incident Grouping -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">2. Incident Grouping</h3>
+        <p>
+            Individual news articles are grouped into a single <strong>incident</strong>
+            when they describe the same real-world event.
+        </p>
+        <p>
+            Grouping is based on:
+        </p>
+        <ul>
+            <li>Incident type (e.g. protest, accident, policy decision)</li>
+            <li>Geographic location</li>
+            <li>Time window (± defined number of days)</li>
+        </ul>
+        <p>
+            A many-to-many relationship is maintained between incidents and news articles.
+        </p>
+    </section>
+
+    <!-- Credibility Scoring -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">3. Credibility Scoring</h3>
+        <p>
+            Each incident receives a credibility score between <strong>0 and 100</strong>.
+            The score reflects the structural reliability of reporting, not truthfulness
+            or intent.
+        </p>
+
+        <p class="fw-semibold">Scoring Factors:</p>
+        <ul>
+            <li>
+                <strong>Source Diversity (40%)</strong><br>
+                Incidents reported by multiple independent sources receive higher scores.
+            </li>
+            <li>
+                <strong>Location Clarity (30%)</strong><br>
+                Clear, consistent geographic information increases credibility.
+            </li>
+            <li>
+                <strong>Completeness of Information (30%)</strong><br>
+                Presence of dates, locations, descriptions, and key details.
+            </li>
+        </ul>
+
+        <p class="text-muted">
+            Credibility scoring is deterministic and reproducible.
+        </p>
+    </section>
+
+    <!-- Perspective Distribution -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">4. Perspective Distribution Analysis</h3>
+        <p>
+            Veritas categorizes news coverage based on the <strong>source type</strong>,
+            not the content or tone of the article.
+        </p>
+
+        <p class="fw-semibold">Perspective Categories:</p>
+        <ul>
+            <li><strong>Public</strong> – citizen-focused, community-impact reporting</li>
+            <li><strong>Neutral</strong> – factual, balanced reporting</li>
+            <li><strong>Political</strong> – policy, governance, or government-focused reporting</li>
+        </ul>
+
+        <p>
+            The system counts how many articles from each category contribute to an incident
+            and displays the percentage distribution.
+        </p>
+
+        <p class="text-muted">
+            Veritas does not analyze opinions, emotions, or sentiment.
+        </p>
+    </section>
+
+    <!-- Similar Incidents -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">5. Similar Incident Identification</h3>
+        <p>
+            To provide historical context, Veritas identifies similar past incidents.
+        </p>
+        <p>
+            Matching criteria include:
+        </p>
+        <ul>
+            <li>Incident type similarity</li>
+            <li>Geographic proximity</li>
+            <li>Temporal proximity (within a defined time range)</li>
+        </ul>
+        <p>
+            This allows users to recognize recurring patterns and trends.
+        </p>
+    </section>
+
+    <!-- Recommendations -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">6. Personalized Recommendations</h3>
+        <p>
+            Veritas provides personalized recommendations for logged-in users.
+        </p>
+        <ul>
+            <li>User reading history is tracked</li>
+            <li>Frequently viewed categories and locations are identified</li>
+            <li>Recent related news is recommended</li>
+        </ul>
+        <p class="text-muted">
+            Recommendations are rule-based and privacy-conscious.
+        </p>
+    </section>
+
+    <!-- System Flow -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">System Flow Summary</h3>
+        <ol>
+            <li>News articles are collected and stored</li>
+            <li>Articles are grouped into incidents</li>
+            <li>Analysis modules compute structured metrics</li>
+            <li>Results are cached for performance</li>
+            <li>Frontend visualizes the analysis</li>
+        </ol>
+    </section>
+
+    <!-- Limitations -->
+    <section class="mb-5">
+        <h3 class="fw-semibold">Limitations & Transparency</h3>
+        <p>
+            While Veritas provides structured analysis, it does not claim to determine
+            absolute truth.
+        </p>
+        <ul>
+            <li>Analysis depends on available sources</li>
+            <li>Source classification is predefined</li>
+            <li>Edge cases may require human interpretation</li>
+        </ul>
+    </section>
+
+    <hr>
+
+    <!-- Closing -->
+    <p class="fst-italic text-muted text-center">
+        Veritas emphasizes transparency, structure, and repeatability over subjective interpretation.
+    </p>
+
+</div>
+
+{% endblock content %}
