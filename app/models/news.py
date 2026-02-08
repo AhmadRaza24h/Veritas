@@ -14,9 +14,11 @@ class News(db.Model):
     title = db.Column(db.Text, nullable=False)
     summary = db.Column(db.Text)
     content = db.Column(db.Text)
-    location = db.Column(db.String(100))
+    location = db.Column(db.String(100))  # Now stores CITY, not area
     incident_type = db.Column(db.String(50))
     published_date = db.Column(db.Date)
+    image_url = db.Column(db.String(1000))  # Store image URL
+    url = db.Column(db.Text, unique=True)  # ⭐ NEW: Article URL
     
     # Relationships
     source = db.relationship('Source', backref='news')
@@ -33,5 +35,7 @@ class News(db.Model):
             'location': self.location,
             'incident_type': self.incident_type,
             'published_date': self.published_date.isoformat() if self.published_date else None,
-            'source': self.source.source_name if self.source else None
+            'source': self.source.source_name if self.source else None,
+            'image_url': self.image_url,    
+            'url': self.url  # ⭐ NEW
         }

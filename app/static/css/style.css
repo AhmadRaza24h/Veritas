@@ -1,35 +1,27 @@
-/* Custom CSS for Veritas */
-
-/* Body and general styling */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f8f9fa;
+/* Image styling for news cards */
+.card-img-top {
+    transition: transform 0.3s ease;
 }
 
-/* Navbar customization */
-.navbar-brand {
-    font-weight: bold;
-    font-size: 1.5rem;
+.card:hover .card-img-top {
+    transform: scale(1.05);
 }
 
-/* Card styling */
 .card {
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+    overflow: hidden;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-/* Jumbotron styling */
-.jumbotron {
+/* Fallback placeholder styling */
+.placeholder-image {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
+    font-size: 2rem;
 }
 
+<<<<<<< HEAD
 /* News content styling */
 .news-content {
     line-height: 1.8;
@@ -85,3 +77,10 @@ footer {
         font-size: 1rem;
     }
 }
+=======
+/* Image error handling */
+img[alt] {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+>>>>>>> 66c376d82864998d9531e3af43e3b549f224b306

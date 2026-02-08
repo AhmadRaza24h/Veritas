@@ -9,16 +9,21 @@ from sqlalchemy import text
 
 main_bp = Blueprint('main', __name__)
 
-
 @main_bp.route('/')
-@jwt_required(optional=True)
+@jwt_required(optional=True)  # ⭐ ADD optional=True (login NOT required but works if logged in)
 def home():
     """Home page with optional authentication."""
-    # Use published_date instead of created_at
     latest_news = News.query.order_by(News.published_date.desc()).limit(10).all()
     
-    current_user_id = get_jwt_identity()
-    recommendations = get_recommendations(user_id=current_user_id, limit=5)
+    current_user_id = get_jwt_identity()  # None if not logged in, user_id if logged in
+    
+    if current_user_id:
+        # Logged in user gets personalized recommendations
+        from app.utils import get_recommendations
+        recommendations = get_recommendations(user_id=current_user_id, limit=5)
+    else:
+        # Guest user gets latest news
+        recommendations = News.query.order_by(News.published_date.desc()).limit(5).all()
     
     return render_template(
         'pages/home.html',
