@@ -4,6 +4,8 @@ Analysis service for orchestrating analysis operations.
 from datetime import datetime
 from app.models import AnalysisCache, Incident, IncidentNews, News
 from app.extensions import db
+from sqlalchemy import func
+
 from app.utils import (
     calculate_credibility_score,
     calculate_perspective_distribution,
@@ -103,45 +105,53 @@ class AnalysisService:
         return get_recommendations(user_id, limit=limit)
     
     @staticmethod
-    def incidents_over_time(days=30):
-        """
-        Returns:
-        [
-          {'date': '2026-01-19', 'count': 2},
-          {'date': '2026-01-20', 'count': 4},
-        ]
-        """
+    def incidents_over_time(incident_id):
         rows = (
             db.session.query(
-                Incident.first_reported.label('date'),
-                func.count(Incident.incident_id).label('count')
+                News.published_date.label('date'),
+                func.count(News.news_id).label('count')
             )
-            .group_by(Incident.first_reported)
-            .order_by(Incident.first_reported)
-            .all()
-        )
-
-        return [{'date': r.date.isoformat(), 'count': r.count} for r in rows]
-
-    @staticmethod
-    def incidents_by_city():
-        """
-        Location stored as: 'Ahmedabad, Gujarat'
-        """
-        rows = (
-            db.session.query(
-                Incident.location,
-                func.count(Incident.incident_id).label('count')
-            )
-            .group_by(Incident.location)
-            .order_by(func.count(Incident.incident_id).desc())
+            .join(IncidentNews, IncidentNews.news_id == News.news_id)
+            .filter(IncidentNews.incident_id == incident_id)
+            .group_by(News.published_date)
+            .order_by(News.published_date)
             .all()
         )
 
         return [
             {
-                'city': r.location.replace(', Gujarat', ''),
+                'date': r.date.strftime('%Y-%m-%d'),
                 'count': r.count
             }
             for r in rows
+            if r.date
         ]
+
+
+
+    @staticmethod
+    def incidents_by_city(incident_id):
+        # get incident first
+        incident = Incident.query.get(incident_id)
+        if not incident:
+            return []
+
+        rows = (
+            db.session.query(
+                News.location.label('city'),
+                func.count(News.news_id).label('count')
+            )
+            .join(IncidentNews, IncidentNews.news_id == News.news_id)
+            .join(Incident, Incident.incident_id == IncidentNews.incident_id)
+            .filter(Incident.incident_type == incident.incident_type)
+            .group_by(News.location)
+            .order_by(func.count(News.news_id).desc())
+            .all()
+        )
+
+        return [
+            {'city': r.city, 'count': r.count}
+            for r in rows if r.city
+        ]
+
+

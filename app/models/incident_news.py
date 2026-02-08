@@ -12,7 +12,7 @@ class IncidentNews(db.Model):
     
     incident_id = db.Column(db.Integer, db.ForeignKey('incidents.incident_id', ondelete='CASCADE'), primary_key=True)
     news_id = db.Column(db.Integer, db.ForeignKey('news.news_id', ondelete='CASCADE'), primary_key=True)
-    reported_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reported_at =  db.Column(db.DateTime, default=datetime.now)
     
     def __repr__(self):
         return f'<IncidentNews incident={self.incident_id} news={self.news_id}>'

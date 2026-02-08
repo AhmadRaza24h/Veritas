@@ -26,14 +26,13 @@ def analysis_detail(incident_id):
     similar_incidents = AnalysisService.get_similar_incidents(incident_id, limit=5)
 
     #Get incidents over time
-    time_data = AnalysisService.incidents_over_time()
-
+    time_data = AnalysisService.incidents_over_time(incident_id)
     #Get incidents by city
-    city_data = AnalysisService.incidents_by_city()
+    city_data = AnalysisService.incidents_by_city(incident_id)
 
     
     return render_template(
-    'analysis/details.html',
+    'analysis/detail.html',
     incident=incident,
     analysis=analysis,
     time_data=time_data,
