@@ -1,5 +1,6 @@
 """
 Background scheduler service - API-Only with smart rate limiting.
+Automatically creates incidents when fetching news.
 """
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 from app.extensions import db
 from app.models import News
 import logging
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,7 +46,7 @@ class SchedulerService:
         # Start scheduler
         self.scheduler.start()
         logger.info("=" * 70)
-        logger.info("✅ SMART SCHEDULER STARTED (API-ONLY)")
+        logger.info("✅ SMART SCHEDULER STARTED (API-ONLY + AUTO-INCIDENTS)")
         logger.info("=" * 70)
         
         # Shutdown on app close
@@ -106,14 +108,18 @@ class SchedulerService:
                 logger.info("🌅 MORNING NEWS FETCH STARTED")
                 logger.info("=" * 70)
                 
-                from app.services.newsapi_ingestion import NewsAPIIngestionService
+                # ✅ FIXED: Correct class name
+                from app.services.newsapi_ingestion import NewsAPIIngestion
                 
-                service = NewsAPIIngestionService()
-                count = service.fetch_ahmedabad_news(page_size=30, days=7)
+                api_key = os.getenv('NEWSAPI_KEY')
+                if not api_key:
+                    logger.error("❌ NEWSAPI_KEY not found!")
+                    return
                 
-                logger.info("=" * 70)
-                logger.info(f"✅ Morning fetch completed: {count} articles")
-                logger.info("=" * 70)
+                service = NewsAPIIngestion(api_key)
+                stats = service.run_ingestion(days=7, page_size=30, max_pages=1)
+                
+                logger.info(f"✅ Morning: {stats['inserted']} articles, {stats['incidents_created']} incidents")
                 
             except Exception as e:
                 logger.error(f"❌ Morning fetch error: {e}")
@@ -126,14 +132,18 @@ class SchedulerService:
                 logger.info("🌤️  AFTERNOON NEWS FETCH STARTED")
                 logger.info("=" * 70)
                 
-                from app.services.newsapi_ingestion import NewsAPIIngestionService
+                # ✅ FIXED: Correct class name
+                from app.services.newsapi_ingestion import NewsAPIIngestion
                 
-                service = NewsAPIIngestionService()
-                count = service.fetch_ahmedabad_news(page_size=30, days=7)
+                api_key = os.getenv('NEWSAPI_KEY')
+                if not api_key:
+                    logger.error("❌ NEWSAPI_KEY not found!")
+                    return
                 
-                logger.info("=" * 70)
-                logger.info(f"✅ Afternoon fetch completed: {count} articles")
-                logger.info("=" * 70)
+                service = NewsAPIIngestion(api_key)
+                stats = service.run_ingestion(days=7, page_size=30, max_pages=1)
+                
+                logger.info(f"✅ Afternoon: {stats['inserted']} articles, {stats['incidents_created']} incidents")
                 
             except Exception as e:
                 logger.error(f"❌ Afternoon fetch error: {e}")
@@ -146,14 +156,18 @@ class SchedulerService:
                 logger.info("🌆 EVENING NEWS FETCH STARTED")
                 logger.info("=" * 70)
                 
-                from app.services.newsapi_ingestion import NewsAPIIngestionService
+                # ✅ FIXED: Correct class name
+                from app.services.newsapi_ingestion import NewsAPIIngestion
                 
-                service = NewsAPIIngestionService()
-                count = service.fetch_ahmedabad_news(page_size=30, days=7)
+                api_key = os.getenv('NEWSAPI_KEY')
+                if not api_key:
+                    logger.error("❌ NEWSAPI_KEY not found!")
+                    return
                 
-                logger.info("=" * 70)
-                logger.info(f"✅ Evening fetch completed: {count} articles")
-                logger.info("=" * 70)
+                service = NewsAPIIngestion(api_key)
+                stats = service.run_ingestion(days=7, page_size=30, max_pages=1)
+                
+                logger.info(f"✅ Evening: {stats['inserted']} articles, {stats['incidents_created']} incidents")
                 
             except Exception as e:
                 logger.error(f"❌ Evening fetch error: {e}")
@@ -166,10 +180,8 @@ class SchedulerService:
                 logger.info("🧹 CLEANUP JOB STARTED")
                 logger.info("=" * 70)
                 
-                # Calculate cutoff date (60 days ago)
                 cutoff_date = datetime.utcnow().date() - timedelta(days=60)
                 
-                # Count old news
                 old_count = News.query.filter(
                     News.published_date < cutoff_date
                 ).count()
@@ -177,7 +189,6 @@ class SchedulerService:
                 if old_count == 0:
                     logger.info("  ✅ No old data to clean")
                 else:
-                    # Delete old news
                     deleted = News.query.filter(
                         News.published_date < cutoff_date
                     ).delete()

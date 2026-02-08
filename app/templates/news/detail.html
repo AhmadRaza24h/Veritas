@@ -2,62 +2,138 @@
 
 {% block title %}{{ news.title }} - Veritas{% endblock %}
 
+{% block extra_css %}
+<style>
+    .news-content {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #333;
+    }
+
+    .read-more-inline {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+        border-bottom: 2px solid #667eea;
+        transition: all 0.3s ease;
+        display: inline-block;
+        margin-top: 1rem;
+    }
+
+    .read-more-inline:hover {
+        color: #764ba2;
+        border-bottom-color: #764ba2;
+        padding-bottom: 2px;
+    }
+
+    .content-preview {
+        margin-bottom: 0.5rem;
+    }
+
+    .article-image {
+        width: 100%;
+        max-height: 450px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge-category {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-lg-8">
             <!-- News Article -->
             <article class="card mb-4">
-                <div class="card-body">
-                    <h1 class="card-title">{{ news.title }}</h1>
+                <div class="card-body p-4">
+                    <h1 class="card-title mb-3" style="font-weight: 700; line-height: 1.3;">{{ news.title }}</h1>
 
                     <div class="mb-3">
                         {% if news.source %}
                         <span
-                            class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
-                            {{ news.source.source_name }} ({{ news.source.category|capitalize }})
+                            class="badge badge-category bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                            <i class="bi bi-newspaper"></i> {{ news.source.source_name }} · {{
+                            news.source.category|capitalize }}
                         </span>
                         {% endif %}
                         {% if news.location %}
-                        <span class="badge bg-secondary">
-                            <i class="bi bi-geo-alt"></i> {{ news.location }}
+                        <span class="badge badge-category bg-secondary">
+                            <i class="bi bi-geo-alt-fill"></i> {{ news.location }}
                         </span>
                         {% endif %}
                         {% if news.incident_type %}
-                        <span class="badge bg-light text-dark">{{ news.incident_type }}</span>
+                        <span class="badge badge-category bg-light text-dark border">
+                            <i class="bi bi-tag-fill"></i> {{ news.incident_type }}
+                        </span>
                         {% endif %}
                     </div>
 
                     {% if news.published_date %}
-                    <p class="text-muted">
-                        <i class="bi bi-calendar"></i> {{ news.published_date.strftime('%B %d, %Y') }}
+                    <p class="text-muted mb-3">
+                        <i class="bi bi-calendar-event"></i> Published on {{ news.published_date.strftime('%B %d, %Y')
+                        }}
                     </p>
                     {% endif %}
 
+                    {# ⭐ FEATURED IMAGE #}
+                    {% if news.image_url %}
+                    <img src="{{ news.image_url }}" class="article-image" alt="{{ news.title }}"
+                        onerror="this.style.display='none'">
+                    {% endif %}
+
+                    {# ⭐ SUMMARY BOX #}
                     {% if news.summary %}
-                    <div class="alert alert-light">
-                        <strong>Summary:</strong> {{ news.summary }}
+                    <div class="alert alert-light border-start border-primary border-4 mb-4">
+                        <strong><i class="bi bi-file-text-fill"></i> Summary:</strong><br>
+                        <p class="mb-0 mt-2">{{ news.summary }}</p>
                     </div>
                     {% endif %}
 
+                    {# ⭐ CONTENT #}
                     {% if news.content %}
                     <div class="news-content">
-                        {{ news.content }}
+                        <div class="content-preview">
+                            {{ news.content }}
+                        </div>
+
+                        {# ⭐ READ MORE LINK #}
+                        {% if news.url %}
+                        <div class="mt-3 pt-3 border-top">
+                            <a href="{{ news.url }}" target="_blank" rel="noopener noreferrer" class="read-more-inline">
+                                <i class="bi bi-arrow-right-circle-fill"></i> Read the complete article on {{
+                                news.source.source_name if news.source else 'original source' }}
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
             </article>
 
+            {# ⭐ RELATED INCIDENT BOX #}
             {% if incident %}
-            <div class="card">
+            <div class="card border-warning">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="bi bi-info-circle"></i> Related Incident
+                        <i class="bi bi-exclamation-triangle-fill text-warning"></i> Part of a Tracked Incident
                     </h5>
-                    <p>This news is part of a larger incident tracked by Veritas.</p>
+                    <p class="mb-3">This news article is connected to a larger incident being monitored by Veritas. View
+                        the complete timeline and analysis.</p>
                     <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}"
-                        class="btn btn-primary">
-                        <i class="bi bi-bar-chart"></i> View Complete Analysis
+                        class="btn btn-warning">
+                        <i class="bi bi-bar-chart-fill"></i> View Complete Incident Analysis
                     </a>
                 </div>
             </div>
@@ -65,53 +141,119 @@
         </div>
 
         <div class="col-lg-4">
-            <!-- Quick Info -->
+            <!-- Quick Info Sidebar -->
             <div class="card mb-3">
-                <div class="card-header">
-                    <i class="bi bi-info-square"></i> Article Information
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-info-circle-fill"></i> Article Details
                 </div>
                 <div class="card-body">
-                    <ul class="list-unstyled">
+                    <ul class="list-unstyled mb-0">
                         {% if news.source %}
-                        <li class="mb-2">
-                            <strong>Source:</strong><br>
-                            {{ news.source.source_name }}
+                        <li class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-newspaper fs-5 text-primary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Source</small>
+                                    <strong>{{ news.source.source_name }}</strong>
+                                    <br>
+                                    <span
+                                        class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }} mt-1">
+                                        {{ news.source.category|capitalize }}
+                                    </span>
+                                </div>
+                            </div>
                         </li>
                         {% endif %}
+
                         {% if news.location %}
-                        <li class="mb-2">
-                            <strong>Location:</strong><br>
-                            {{ news.location }}
+                        <li class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-geo-alt-fill fs-5 text-danger me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Location</small>
+                                    <strong>{{ news.location }}</strong>
+                                </div>
+                            </div>
                         </li>
                         {% endif %}
+
                         {% if news.incident_type %}
-                        <li class="mb-2">
-                            <strong>Type:</strong><br>
-                            {{ news.incident_type }}
+                        <li class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-tag-fill fs-5 text-secondary me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Incident Type</small>
+                                    <span class="badge bg-secondary">{{ news.incident_type }}</span>
+                                </div>
+                            </div>
                         </li>
                         {% endif %}
+
                         {% if news.published_date %}
-                        <li class="mb-2">
-                            <strong>Published:</strong><br>
-                            {{ news.published_date.strftime('%B %d, %Y') }}
+                        <li class="mb-0">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-calendar-event-fill fs-5 text-success me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Published Date</small>
+                                    <strong>{{ news.published_date.strftime('%B %d, %Y') }}</strong>
+                                </div>
+                            </div>
                         </li>
                         {% endif %}
                     </ul>
+
+                    {# ⭐ SIDEBAR SOURCE LINK #}
+                    {% if news.url %}
+                    <hr class="my-3">
+                    <div class="d-grid">
+                        <a href="{{ news.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-up-right"></i> Visit Original Source
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Navigation Actions -->
             <div class="card">
                 <div class="card-body">
-                    <a href="{{ url_for('news.news_list') }}" class="btn btn-secondary w-100 mb-2">
-                        <i class="bi bi-arrow-left"></i> Back to News
-                    </a>
-                    {% if incident %}
-                    <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}"
-                        class="btn btn-primary w-100">
-                        <i class="bi bi-bar-chart"></i> View Analysis
-                    </a>
-                    {% endif %}
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to All News
+                        </a>
+                        {% if incident %}
+                        <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}"
+                            class="btn btn-warning">
+                            <i class="bi bi-bar-chart-fill"></i> View Incident Analysis
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# ⭐ SHARE OPTIONS (Optional) #}
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <h6 class="card-title mb-3">Share this article</h6>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="https://twitter.com/intent/tweet?url={{ request.url }}&text={{ news.title }}"
+                            target="_blank" class="btn btn-sm btn-outline-primary" title="Share on Twitter">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank"
+                            class="btn btn-sm btn-outline-primary" title="Share on Facebook">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.url }}" target="_blank"
+                            class="btn btn-sm btn-outline-primary" title="Share on LinkedIn">
+                            <i class="bi bi-linkedin"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-primary"
+                            onclick="navigator.clipboard.writeText('{{ request.url }}'); alert('Link copied!');"
+                            title="Copy link">
+                            <i class="bi bi-link-45deg"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

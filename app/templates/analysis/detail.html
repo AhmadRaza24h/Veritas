@@ -2,88 +2,240 @@
 
 {% block title %}Analysis - {{ incident.incident_type }} - Veritas{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Incident Analysis</h2>
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-left: 4px solid;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
 
-    <div class="row">
-        <div class="col-lg-8">
-            <!-- Incident Overview -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Incident Overview</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Type:</strong> {{ incident.incident_type or 'N/A' }}</p>
-                            <p><strong>Location:</strong> {{ incident.location or 'N/A' }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>First Reported:</strong>
-                                {% if incident.first_reported %}{{ incident.first_reported.strftime('%b %d, %Y') }}{%
-                                else %}N/A{% endif %}
-                            </p>
-                            <p><strong>Last Reported:</strong>
-                                {% if incident.last_reported %}{{ incident.last_reported.strftime('%b %d, %Y') }}{% else
-                                %}N/A{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    <p><strong>Total News Articles:</strong> {{ incident_news|length }}</p>
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.border-success {
+        border-left-color: #198754;
+    }
+
+    .stat-card.border-info {
+        border-left-color: #0dcaf0;
+    }
+
+    .stat-card.border-warning {
+        border-left-color: #ffc107;
+    }
+
+    .stat-card.border-primary {
+        border-left-color: #0d6efd;
+    }
+
+    .credibility-badge {
+        font-size: 3rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .credibility-ring {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        margin: 0 auto;
+    }
+
+    .credibility-ring::before {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        padding: 10px;
+        background: conic-gradient(var(--ring-color) calc(var(--score) * 1%),
+                #e9ecef calc(var(--score) * 1%));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    .perspective-stat {
+        padding: 1rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+        color: white;
+        text-align: center;
+    }
+
+    .news-item {
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .news-item:hover {
+        border-left-color: #0d6efd;
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+    }
+
+    .incident-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+    <!-- Incident Header -->
+    <div class="incident-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2"><i class="bi bi-exclamation-triangle-fill"></i> {{ incident.incident_type }}</h2>
+                <p class="mb-1"><i class="bi bi-geo-alt-fill"></i> {{ incident.location or 'Location Unknown' }}</p>
+                <p class="mb-0">
+                    <i class="bi bi-calendar3"></i>
+                    {% if incident.first_reported %}
+                    {{ incident.first_reported.strftime('%B %d, %Y') }}
+                    {% else %}
+                    Date Unknown
+                    {% endif %}
+                    {% if incident.last_reported and incident.first_reported != incident.last_reported %}
+                    - {{ incident.last_reported.strftime('%B %d, %Y') }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="badge bg-light text-dark fs-5 px-3 py-2">
+                    <i class="bi bi-newspaper"></i> {{ incident_news|length }} Articles
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Credibility Score -->
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
             {% if analysis %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Credibility Score</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="mb-0">{{ analysis.credibility_score }}/100</h2>
-                        <div class="progress" style="width: 60%; height: 30px;">
-                            <div class="progress-bar bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}"
-                                role="progressbar" style="--score: {{ analysis['credibility_score'] | int }};">
+            <!-- Credibility Score -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="section-title">
+                        <i class="bi bi-shield-check"></i>
+                        Credibility Analysis
+                    </h5>
 
-                                {{ analysis.credibility_score }}%
+                    <div class="row align-items-center">
+                        <div class="col-md-5 text-center">
+                            <div class="credibility-ring"
+                                style="--score: {{ analysis.credibility_score }}; 
+                                        --ring-color: {% if analysis.credibility_score >= 70 %}#198754{% elif analysis.credibility_score >= 40 %}#ffc107{% else %}#dc3545{% endif %};">
+                                <div class="credibility-badge">
+                                    {{ analysis.credibility_score }}
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span
+                                    class="badge bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }} px-3 py-2">
+                                    {% if analysis.credibility_score >= 70 %}
+                                    High Credibility
+                                    {% elif analysis.credibility_score >= 40 %}
+                                    Moderate Credibility
+                                    {% else %}
+                                    Low Credibility
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <h6 class="mb-3">Score Breakdown</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="text-muted">Source Diversity</small>
+                                    <small class="fw-bold">40%</small>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 40%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="text-muted">Location Clarity</small>
+                                    <small class="fw-bold">30%</small>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: 30%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="text-muted">Information Completeness</small>
+                                    <small class="fw-bold">30%</small>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 30%"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted">
-                        Credibility is calculated based on source diversity (40%), location clarity (30%), and
-                        completeness of information (30%).
-                    </p>
                 </div>
             </div>
 
             <!-- Perspective Distribution -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Perspective Distribution</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="perspectiveChart" width="400" height="200"></canvas>
-                    <p class="mt-3 text-muted">{{ analysis.perspective.summary }}</p>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="section-title">
+                        <i class="bi bi-pie-chart"></i>
+                        Source Perspective Analysis
+                    </h5>
 
-                    <div class="row mt-3">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <div class="text-center">
-                                <h4 class="text-success">{{ analysis.perspective.public_pct }}%</h4>
-                                <p class="small">Public</p>
+                            <div class="perspective-stat" style="--bg-start: #198754; --bg-end: #20c997;">
+                                <div class="fs-2 fw-bold">{{ analysis.perspective.public_pct }}%</div>
+                                <div class="small text-uppercase">Public Sources</div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="text-center">
-                                <h4 class="text-info">{{ analysis.perspective.neutral_pct }}%</h4>
-                                <p class="small">Neutral</p>
+                            <div class="perspective-stat" style="--bg-start: #0dcaf0; --bg-end: #0d6efd;">
+                                <div class="fs-2 fw-bold">{{ analysis.perspective.neutral_pct }}%</div>
+                                <div class="small text-uppercase">Neutral Media</div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="text-center">
-                                <h4 class="text-warning">{{ analysis.perspective.political_pct }}%</h4>
-                                <p class="small">Political</p>
+                            <div class="perspective-stat" style="--bg-start: #ffc107; --bg-end: #fd7e14;">
+                                <div class="fs-2 fw-bold">{{ analysis.perspective.political_pct }}%</div>
+                                <div class="small text-uppercase">Political Sources</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="perspectiveChart" height="200"></canvas>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div>
+                                <h6 class="mb-2">Analysis Summary</h6>
+                                <p class="text-muted mb-0">{{ analysis.perspective.summary }}</p>
                             </div>
                         </div>
                     </div>
@@ -92,33 +244,45 @@
             {% endif %}
 
             <!-- Related News Articles -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-newspaper"></i> Related News Articles</h5>
-                </div>
-                <div class="card-body">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="section-title">
+                        <i class="bi bi-newspaper"></i>
+                        Related News Articles ({{ incident_news|length }})
+                    </h5>
+
                     {% if incident_news %}
-                    <div class="list-group">
+                    <div class="list-group list-group-flush">
                         {% for news in incident_news %}
                         <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}"
-                            class="list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ news.title }}</h6>
+                            class="list-group-item list-group-item-action news-item border-0 py-3">
+                            <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0 flex-grow-1">{{ news.title }}</h6>
                                 {% if news.published_date %}
-                                <small>{{ news.published_date.strftime('%b %d') }}</small>
+                                <span class="badge bg-light text-dark ms-2">
+                                    <i class="bi bi-clock"></i> {{ news.published_date.strftime('%b %d, %Y') }}
+                                </span>
                                 {% endif %}
                             </div>
                             {% if news.source %}
-                            <span
-                                class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
-                                {{ news.source.source_name }}
-                            </span>
+                            <div>
+                                <span
+                                    class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                                    <i class="bi bi-building"></i> {{ news.source.source_name }}
+                                </span>
+                                <span class="badge bg-secondary ms-1">
+                                    {{ news.source.category|title }}
+                                </span>
+                            </div>
                             {% endif %}
                         </a>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p>No related news articles found.</p>
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                        <p>No related news articles found.</p>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -126,36 +290,101 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Similar Incidents -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-stack"></i> Similar Incidents</h6>
+            <!-- Quick Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="card stat-card border-primary shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 small">Total Coverage</p>
+                                    <h3 class="mb-0">{{ incident_news|length }}</h3>
+                                </div>
+                                <div class="fs-1 text-primary">
+                                    <i class="bi bi-file-text"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+
+                {% if analysis %}
+                <div class="col-12">
+                    <div
+                        class="card stat-card border-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }} shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 small">Credibility</p>
+                                    <h3 class="mb-0">{{ analysis.credibility_score }}/100</h3>
+                                </div>
+                                <div
+                                    class="fs-1 text-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}">
+                                    <i class="bi bi-shield-check"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Similar Incidents -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="section-title">
+                        <i class="bi bi-stack"></i>
+                        Similar Incidents
+                    </h5>
+
                     {% if similar_incidents %}
                     <div class="list-group list-group-flush">
                         {% for similar in similar_incidents %}
                         <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}"
-                            class="list-group-item list-group-item-action">
-                            <strong>{{ similar.incident_type }}</strong><br>
-                            <small class="text-muted">
-                                {{ similar.location }}<br>
-                                {% if similar.first_reported %}{{ similar.first_reported.strftime('%b %d, %Y') }}{%
-                                endif %}
-                            </small>
+                            class="list-group-item list-group-item-action border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="bg-light rounded p-2">
+                                        <i class="bi bi-exclamation-circle text-primary"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ similar.incident_type }}</h6>
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-geo-alt"></i> {{ similar.location }}
+                                    </small>
+                                    {% if similar.first_reported %}
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-calendar"></i> {{ similar.first_reported.strftime('%b %d, %Y')
+                                        }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                </div>
+                            </div>
                         </a>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <p class="text-muted">No similar incidents found.</p>
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-search fs-3 d-block mb-2"></i>
+                        <small>No similar incidents found</small>
+                    </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Back Button -->
-            <a href="{{ url_for('news.news_list') }}" class="btn btn-secondary w-100">
-                <i class="bi bi-arrow-left"></i> Back to News
-            </a>
+            <!-- Actions -->
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to News
+                </a>
+                <a href="#" class="btn btn-outline-primary" onclick="window.print(); return false;">
+                    <i class="bi bi-printer"></i> Print Report
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -163,13 +392,13 @@
 
 {% block extra_js %}
 <script>
-    // Perspective Distribution Chart
     {% if analysis %}
+    // Perspective Distribution Chart
     const ctx = document.getElementById('perspectiveChart');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Public', 'Neutral', 'Political'],
+            labels: ['Public Sources', 'Neutral Media', 'Political Sources'],
             datasets: [{
                 data: [
                     {{ analysis.perspective.public_pct }},
@@ -177,16 +406,16 @@
                     {{ analysis.perspective.political_pct }}
                 ],
         backgroundColor: [
-        'rgba(25, 135, 84, 0.8)',   // Success green for Public
-        'rgba(13, 202, 240, 0.8)',  // Info cyan for Neutral
-        'rgba(255, 193, 7, 0.8)'    // Warning yellow for Political
+        'rgba(25, 135, 84, 0.8)',
+        'rgba(13, 202, 240, 0.8)',
+        'rgba(255, 193, 7, 0.8)'
     ],
         borderColor: [
         'rgba(25, 135, 84, 1)',
         'rgba(13, 202, 240, 1)',
         'rgba(255, 193, 7, 1)'
     ],
-        borderWidth: 1
+        borderWidth: 2
             }]
         },
         options: {
@@ -195,6 +424,19 @@
         plugins: {
             legend: {
                 position: 'bottom',
+                labels: {
+                    padding: 15,
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        return context.label + ': ' + context.parsed + '%';
+                    }
+                }
             }
         }
     }

@@ -1,274 +1,430 @@
 """
-NewsAPI ingestion service - Ahmedabad Local News ONLY.
-Optimized for quality and accuracy with AUTO-INCIDENT CREATION.
+NewsAPI Ingestion Service for Gujarat State-Level News
+Custom source categorization mapping
 """
 import requests
-from datetime import datetime, timedelta
-from app.models import News, Source
-from app.extensions import db
-import logging
-import os
 import re
+from datetime import datetime, timedelta
+from sqlalchemy import and_
+from app.models import News, Source, Incident, IncidentNews
+from app.extensions import db
 
-logger = logging.getLogger(__name__)
 
-
-class NewsAPIIngestionService:
-    """Service to fetch ONLY Ahmedabad news from NewsAPI."""
+class NewsAPIIngestion:
+    """NewsAPI Ingestion Service for Gujarat State"""
     
-    def __init__(self):
-        self.api_key = os.environ.get('NEWSAPI_KEY')
+    GUJARAT_CITIES = [
+        'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar',
+        'Jamnagar', 'Junagadh', 'Gandhinagar', 'Anand', 'Nadiad',
+        'Morbi', 'Surendranagar', 'Bharuch', 'Valsad', 'Vapi',
+        'Navsari', 'Mehsana', 'Patan', 'Palanpur', 'Gandhidham',
+        'Kheda', 'Botad', 'Amreli', 'Porbandar', 'Godhra'
+    ]
+    
+    def __init__(self, api_key):
+        self.api_key = api_key
         self.base_url = 'https://newsapi.org/v2/everything'
-        
-        if not self.api_key:
-            logger.warning("⚠️  NEWSAPI_KEY not found in environment variables")
+        self.stats = {
+            'fetched': 0, 'filtered': 0, 'inserted': 0, 'duplicates': 0,
+            'incidents_created': 0, 'incidents_updated': 0,
+            'by_category': {'public': 0, 'neutral': 0, 'political': 0},
+            'by_incident': {}
+        }
     
-    def fetch_ahmedabad_news(self, page_size=30, days=29):
+    def _get_source_category(self, source_obj):
         """
-        Fetch Ahmedabad-specific news from NewsAPI with AUTO-INCIDENT CREATION.
-        
-        Args:
-            page_size: Number of articles per request (default: 30)
-            days: Number of days to look back (default: 29)
-        
-        Returns:
-            int: Number of articles stored
+        Smart source categorization with normalization
         """
-        if not self.api_key:
-            logger.error("❌ Cannot fetch: NEWSAPI_KEY not configured")
-            return 0
+        raw_id = (source_obj.get('id') or '').lower()
+        raw_name = (source_obj.get('name') or '').lower()
+
+        # Normalize (remove special chars, extra spaces)
+        name = re.sub(r'[^a-z0-9 ]', '', raw_name)
+        name = re.sub(r'\s+', ' ', name).strip()
+
+        # STRONG RULES
+        PUBLIC_SOURCES = [
+            'times of india', 'indian express', 'hindustan times',
+            'ndtv', 'news18', 'the hindu', 'ahmedabad mirror',
+            'divya bhaskar', 'gujarat samachar', 'sandesh',
+            'the wire', 'scroll', 'newslaundry', 'the quint',
+            'alt news', 'caravan', 'the print', 'rediff',
+            'statetimes'
+        ]
+
+        POLITICAL_SOURCES = [
+            'pib', 'press information bureau', 'doordarshan',
+            'dd news', 'sansad tv', 'all india radio'
+        ]
+
+        NEUTRAL_SOURCES = [
+            'reuters', 'bloomberg', 'bbc', 'cnbc', 'business standard',
+            'economic times', 'moneycontrol', 'livemint', 'businessline',
+            'globalsecurity', 'globenewswire', 'oilprice', 'nature',
+            'insurance journal', 'yahoo'
+        ]
+
+        # Match by NAME
+        for s in PUBLIC_SOURCES:
+            if s in name:
+                return 'public'
+
+        for s in POLITICAL_SOURCES:
+            if s in name:
+                return 'political'
+
+        for s in NEUTRAL_SOURCES:
+            if s in name:
+                return 'neutral'
+
+        # Keyword fallback
+        if 'gov' in name or 'government' in name:
+            return 'political'
+
+        return 'neutral'
+    
+    def fetch_gujarat_news(self, days=7, page_size=100, max_pages=2):
+        """Fetch Gujarat news"""
+        from_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+        query = '(Gujarat OR Ahmedabad OR Surat OR Vadodara OR Rajkot OR Gandhinagar)'
         
-        try:
-            # Calculate date range
-            to_date = datetime.utcnow()
-            from_date = to_date - timedelta(days=days)
+        all_articles = []
+        
+        print(f"\n🔍 Fetching Gujarat news from NewsAPI...")
+        print(f"   Period: {days} days | Pages: {max_pages}")
+        
+        for page in range(1, max_pages + 1):
+            try:
+                response = requests.get(self.base_url, params={
+                    'q': query, 'from': from_date, 'sortBy': 'publishedAt',
+                    'language': 'en', 'apiKey': self.api_key,
+                    'pageSize': page_size, 'page': page
+                }, timeout=15)
+                
+                if response.status_code == 200:
+                    articles = response.json().get('articles', [])
+                    all_articles.extend(articles)
+                    print(f"   ✅ Page {page}: {len(articles)} articles")
+                    if len(articles) < page_size:
+                        break
+                else:
+                    print(f"   ⚠️  Error {response.status_code}")
+                    break
+            except Exception as e:
+                print(f"   ❌ {e}")
+                break
+        
+        self.stats['fetched'] = len(all_articles)
+        print(f"✅ Total: {len(all_articles)}")
+        return all_articles
+    
+    def _is_valid_article(self, article):
+        """Quality check"""
+        title = article.get('title', '')
+        desc = article.get('description', '')
+        
+        if not title or not desc or len(title) < 10:
+            return False
+        
+        combined = f"{title} {desc} {article.get('content', '')}".lower()
+        if any(x in combined for x in ['[removed]', '[deleted]', 'subscribe to']):
+            return False
+        
+        return True
+    
+    def _extract_location(self, article):
+        """Extract location"""
+        combined = f"{article.get('title', '')} {article.get('description', '')} {article.get('content', '')}".lower()
+        combined_clean = re.sub(r'[^\w\s]', ' ', combined)
+        
+        for city in self.GUJARAT_CITIES:
+            pattern = rf'\b{city.lower()}(based|\'s| district)?\b'
+            if re.search(pattern, combined_clean):  
+                return f"{city}, Gujarat"
+        
+        if 'gujarat' in combined_clean:
+            return 'Gujarat'
+        
+        return None
+    
+    def _extract_incident_type(self, article):
+        """Extract incident type with priority rules"""
+        combined = f"{article.get('title', '')} {article.get('description', '')} {article.get('content', '')}".lower()
+
+        INCIDENT_RULES = [
+            # High priority (hard incidents)
+            ('Crime', [
+                'murder', 'arrest', 'rape', 'robbery', 'theft',
+                'police', 'fir', 'custody', 'crime', 'assault'
+            ]),
+            ('Fire', [
+                'fire', 'blaze', 'explosion', 'short circuit', 'burnt'
+            ]),
+            ('Accident', [
+                'accident', 'collision', 'crash', 'hit', 'killed',
+                'injured', 'road mishap'
+            ]),
+            ('Weather', [
+                'flood', 'rain', 'cyclone', 'storm', 'heatwave',
+                'monsoon', 'weather alert'
+            ]),
             
-            # STRICT Ahmedabad query
-            params = {
-                'q': 'Ahmedabad',  # Only Ahmedabad
-                'from': from_date.strftime('%Y-%m-%d'),
-                'to': to_date.strftime('%Y-%m-%d'),
-                'language': 'en',
-                'sortBy': 'publishedAt',
-                'pageSize': page_size,
-                'apiKey': self.api_key
-            }
+            # Infrastructure
+            ('Infrastructure', [
+                'metro', 'bridge', 'highway', 'road', 'flyover',
+                'construction', 'project', 'pipeline'
+            ]),
             
-            logger.info(f"📡 Fetching Ahmedabad news from NewsAPI (pageSize={page_size})...")
+            # Business (expanded)
+            ('Business', [
+                'investment', 'invest', 'funding', 'startup',
+                'company', 'firm', 'industry', 'industrial',
+                'plant', 'factory', 'manufacturing',
+                'economy', 'economic', 'market', 'stock',
+                'revenue', 'profit', 'loss', 'crore'
+            ]),
             
-            response = requests.get(self.base_url, params=params, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            # Health
+            ('Health', [
+                'hospital', 'covid', 'health', 'vaccine',
+                'medical', 'doctor', 'disease', 'infection'
+            ]),
             
-            if data['status'] == 'ok':
-                articles = data['articles']
-                total_results = data.get('totalResults', 0)
-                
-                logger.info(f"  📊 Total available: {total_results}")
-                logger.info(f"  📥 Received: {len(articles)} articles")
-                
-                count = self._process_articles(articles)
-                
-                logger.info(f"  ✅ Stored: {count} Ahmedabad articles")
-                
-                return count
-            else:
-                error_msg = data.get('message', 'Unknown error')
-                logger.error(f"❌ NewsAPI Error: {error_msg}")
-                return 0
-                
-        except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Request failed: {e}")
-            return 0
-        except Exception as e:
-            logger.error(f"❌ Unexpected error: {e}")
-            return 0
+            # Education
+            ('Education', [
+                'exam', 'university', 'college', 'school',
+                'student', 'neet', 'jee', 'board exam'
+            ]),
+            
+            # Politics (lower priority)
+            ('Politics', [
+                'election', 'minister', 'bjp', 'congress',
+                'government', 'policy', 'cabinet', 'cm', 'pm'
+            ]),
+            
+            # Sports
+            ('Sports', [
+                'cricket', 'ipl', 'match', 'tournament', 'sports'
+            ]),
+        ]
+
+        for incident, keywords in INCIDENT_RULES:
+            if any(kw in combined for kw in keywords):
+                return incident
+
+        return 'General'
     
     def _process_articles(self, articles):
-        """Process and store articles with AUTO-INCIDENT CREATION."""
-        from app.services import NewsService  # ⭐ IMPORT HERE
+        """Process articles"""
+        processed = []
         
-        stored_count = 0
-        skipped_duplicate = 0
-        skipped_location = 0
+        print(f"\n🔍 Processing {len(articles)} articles...")
+        
+        for article in articles:
+            if not self._is_valid_article(article):
+                continue
+            
+            location = self._extract_location(article)
+            if not location:
+                continue
+            
+            incident_type = self._extract_incident_type(article)
+            self.stats['by_incident'][incident_type] = self.stats['by_incident'].get(incident_type, 0) + 1
+            
+            article['location'] = location
+            article['incident_type'] = incident_type
+            processed.append(article)
+        
+        self.stats['filtered'] = len(processed)
+        print(f"✅ Valid: {len(processed)}")
+        return processed
+    
+    def _save_to_database(self, articles):
+        """Save articles with smart categorization"""
+        print(f"\n💾 Saving {len(articles)} articles...")
+        
+        saved_news_ids = []
         
         for article in articles:
             try:
-                # Skip removed/deleted articles
-                if not article.get('title') or article['title'] == '[Removed]':
+                url = article.get('url', '').strip()
+                if not url:
                     continue
                 
-                # STRICT location check
-                text_to_check = ' '.join([
-                    article.get('title', ''),
-                    article.get('description', ''),
-                    article.get('content', '')
-                ])
+                # Check duplicate
+                if News.query.filter_by(url=url).first():
+                    self.stats['duplicates'] += 1
+                    continue
                 
-                location = self._extract_ahmedabad_location(text_to_check)
-                
-                if not location:
-                    skipped_location += 1
-                    continue  # Skip non-Ahmedabad news
+                source_obj = article.get('source', {})
+                source_name = source_obj.get('name', 'Unknown')
                 
                 # Get or create source
-                source_name = article['source']['name']
                 source = Source.query.filter_by(source_name=source_name).first()
+                category = self._get_source_category(source_obj)
                 
                 if not source:
-                    category = self._categorize_source(source_name)
+                    # Create new
                     source = Source(source_name=source_name, category=category)
                     db.session.add(source)
                     db.session.flush()
+                else:
+                    # Update if needed
+                    if source.category != category:
+                        source.category = category
+                        db.session.flush()
                 
-                # Categorize incident type
-                incident_type = self._categorize_incident(
-                    article.get('title', ''),
-                    article.get('description', '')
-                )
+                self.stats['by_category'][category] += 1
                 
-                # Parse published date
+                icon = {'public': '🟢', 'neutral': '🔵', 'political': '🟡'}[category]
+                print(f"   {icon} {source_name} → {category.upper()}")
+                
+                # Parse date
+                published_at = article.get('publishedAt')
                 try:
-                    published_date = datetime.strptime(
-                        article['publishedAt'][:10], '%Y-%m-%d'
-                    ).date()
+                    pub_date = datetime.fromisoformat(published_at.replace('Z', '+00:00')).date()
                 except:
-                    published_date = datetime.utcnow().date()
+                    pub_date = datetime.now().date()
                 
-                # Get image URL
-                image_url = article.get('urlToImage')
-                if image_url:
-                    image_url = image_url.split('?')[0] if '?' in image_url else image_url
-                    if not image_url.startswith('http'):
-                        image_url = None
-                
-                # ⭐ CHANGED: Use add_news_with_incident instead of direct News creation
-                news, incident = NewsService.add_news_with_incident(
-                    title=article['title'][:500],
-                    content=article.get('content', article.get('description', ''))[:2000],
-                    summary=article.get('description', '')[:500] if article.get('description') else None,
-                    location=location,
-                    incident_type=incident_type,
+                # Create news
+                news = News(
                     source_id=source.source_id,
-                    published_date=published_date
+                    title=article.get('title', '')[:500],
+                    summary=article.get('description', ''),
+                    content=article.get('content', ''),
+                    location=article.get('location'),
+                    incident_type=article.get('incident_type'),
+                    url=url,
+                    image_url=article.get('urlToImage'),
+                    published_date=pub_date
                 )
                 
-                # ⭐ Update image_url if news was created
-                if news and image_url:
-                    news.image_url = image_url
-                    db.session.commit()
-                
-                if news and incident:
-                    stored_count += 1
-                    logger.info(f"  ✅ {news.title[:50]}... → Incident {incident.incident_id}")
-                elif news:
-                    skipped_duplicate += 1
+                db.session.add(news)
+                db.session.flush()
+                saved_news_ids.append(news.news_id)
+                self.stats['inserted'] += 1
                 
             except Exception as e:
-                logger.error(f"❌ Error processing article: {e}")
+                print(f"   ❌ Error: {str(e)[:80]}")
                 db.session.rollback()
                 continue
         
-        # Log statistics
-        logger.info(f"  📊 Skipped duplicates: {skipped_duplicate}")
-        logger.info(f"  📊 Skipped non-Ahmedabad: {skipped_location}")
+        try:
+            db.session.commit()
+            print(f"✅ Saved {self.stats['inserted']} articles!")
+        except Exception as e:
+            print(f"❌ Commit error: {e}")
+            db.session.rollback()
+            return []
         
-        return stored_count
+        return saved_news_ids
     
-    def _extract_ahmedabad_location(self, text):
-        """
-        STRICT Ahmedabad location extraction.
-        Only Ahmedabad, Gandhinagar, and surrounding districts.
-        """
-        text_lower = text.lower()
-        text_clean = re.sub(r'[^\w\s]', ' ', text_lower)
-    
-        # PRIORITY 1: Direct Ahmedabad mention
-        ahmedabad_keywords = ['ahmedabad', 'amdavad', 'ahmadabad', 'ahmdabad']
-        has_ahmedabad = any(kw in text_clean for kw in ahmedabad_keywords)
-    
-        if has_ahmedabad:
-            # Check for specific areas
-            ahmedabad_areas = [
-                'maninagar', 'vastrapur', 'sg highway', 'paldi', 'satellite',
-                'navrangpura', 'bodakdev', 'cg road', 'ashram road', 'law garden',
-                'gota', 'kalupur', 'nehru bridge', 'ellis bridge', 'thaltej',
-                'bopal', 'chandkheda', 'sabarmati', 'iscon', 'prahlad nagar',
-                'motera', 'science city', 'riverfront', 'kankaria', 'naroda',
-                'vastral', 'nikol', 'odhav', 'narol', 'sarkhej', 'shahibaug'
-            ]
+    def _create_incidents(self, news_ids):
+        """Create incidents from saved news"""
+        if not news_ids:
+            return
         
-            for area in ahmedabad_areas:
-                if area in text_clean:
-                    return f"{area.title()}, Ahmedabad"
+        print(f"\n🔗 Creating incidents...")
         
-            return 'Ahmedabad, Gujarat'
-    
-        # PRIORITY 2: Gandhinagar (state capital, close to Ahmedabad)
-        if 'gandhinagar' in text_clean:
-            return 'Gandhinagar, Gujarat'
-    
-        # PRIORITY 3: Ahmedabad District cities
-        ahmedabad_district_cities = {
-            'sanand': 'Sanand, Ahmedabad District',
-            'bavla': 'Bavla, Ahmedabad District',
-            'dholka': 'Dholka, Ahmedabad District',
-            'viramgam': 'Viramgam, Ahmedabad District',
-        }
-    
-        for city, location in ahmedabad_district_cities.items():
-            if city in text_clean:
-                return location
-    
-        # PRIORITY 4: Educational institutions in Ahmedabad
-        educational_keywords = [
-            'iit gandhinagar', 'pdpu', 'nid ahmedabad', 'cept', 
-            'ld engineering', 'nirma university', 'gift city'
-        ]
-    
-        for keyword in educational_keywords:
-            if keyword in text_clean:
-                return 'Ahmedabad, Gujarat'
-    
-        # ⭐ STRICT: Reject anything else (no generic Gujarat news)
-        return None
-    
-    def _categorize_source(self, source_name):
-        """Categorize news source."""
-        source_lower = source_name.lower()
+        news_list = News.query.filter(News.news_id.in_(news_ids)).all()
         
-        # Political sources
-        if any(word in source_lower for word in ['government', 'ministry', 'official', 'pib']):
-            return 'political'
+        # Group by (type, location)
+        groups = {}
+        for news in news_list:
+            key = (news.incident_type, news.location)
+            groups.setdefault(key, []).append(news)
         
-        # Public/citizen sources
-        if any(word in source_lower for word in ['citizen', 'public', 'blog', 'medium']):
-            return 'public'
+        for (itype, loc), articles in groups.items():
+            # Check existing
+            existing = Incident.query.filter_by(incident_type=itype, location=loc).first()
+            
+            if existing:
+                # Link to existing
+                for news in articles:
+                    link = IncidentNews.query.filter_by(
+                        incident_id=existing.incident_id,
+                        news_id=news.news_id
+                    ).first()
+                    
+                    if not link:
+                        db.session.add(IncidentNews(
+                            incident_id=existing.incident_id,
+                            news_id=news.news_id,
+                            reported_at=news.published_date or datetime.now()
+                        ))
+                
+                # Update dates
+                dates = [n.published_date for n in articles if n.published_date]
+                if dates:
+                    if min(dates) < existing.first_reported:
+                        existing.first_reported = min(dates)
+                    if max(dates) > existing.last_reported:
+                        existing.last_reported = max(dates)
+                
+                self.stats['incidents_updated'] += 1
+            else:
+                # Create new
+                dates = [n.published_date for n in articles if n.published_date]
+                incident = Incident(
+                    incident_type=itype,
+                    location=loc,
+                    first_reported=min(dates) if dates else datetime.now().date(),
+                    last_reported=max(dates) if dates else datetime.now().date()
+                )
+                db.session.add(incident)
+                db.session.flush()
+                
+                # Link articles
+                for news in articles:
+                    db.session.add(IncidentNews(
+                        incident_id=incident.incident_id,
+                        news_id=news.news_id,
+                        reported_at=news.published_date or datetime.now()
+                    ))
+                
+                self.stats['incidents_created'] += 1
+                print(f"   ✅ {itype} at {loc} ({len(articles)} articles)")
         
-        # Default: neutral (news media)
-        return 'neutral'
+        db.session.commit()
+        print(f"   Total: {self.stats['incidents_created']} new, {self.stats['incidents_updated']} updated")
     
-    def _categorize_incident(self, title, description):
-        """Categorize incident type based on keywords."""
-        text = ((title or '') + ' ' + (description or '')).lower()
+    def run_ingestion(self, days=7, page_size=100, max_pages=2):
+        """Run complete pipeline"""
+        articles = self.fetch_gujarat_news(days, page_size, max_pages)
+        if not articles:
+            return self.stats
         
-        categories = {
-            'Accident': ['accident', 'collision', 'crash', 'hit', 'injured', 'mishap', 'fatal', 'died'],
-            'Crime': ['robbery', 'theft', 'murder', 'assault', 'crime', 'arrest', 'police', 'fir', 'rape', 'kidnap', 'fraud', 'scam'],
-            'Weather': ['rain', 'flood', 'storm', 'weather', 'waterlogging', 'cyclone', 'thunder', 'heatwave', 'drought'],
-            'Infrastructure': ['metro', 'road', 'bridge', 'construction', 'development', 'project', 'airport', 'railway', 'brts'],
-            'Politics': ['election', 'minister', 'government', 'policy', 'party', 'cm', 'pm', 'mla', 'mp', 'parliament', 'bjp', 'congress', 'aap'],
-            'Event': ['festival', 'celebration', 'event', 'concert', 'gathering', 'function', 'ceremony', 'navratri', 'diwali', 'uttarayan'],
-            'Traffic': ['traffic', 'jam', 'congestion', 'vehicle', 'highway', 'flyover', 'road block', 'diversion'],
-            'Fire': ['fire', 'blaze', 'burn', 'flames', 'smoke'],
-            'Health': ['hospital', 'health', 'medical', 'doctor', 'patient', 'covid', 'disease', 'vaccine', 'deaths', 'treatment'],
-            'Education': ['school', 'college', 'university', 'education', 'student', 'exam', 'result', 'admission', 'iit', 'nit'],
-            'Business': ['business', 'economy', 'market', 'stock', 'company', 'startup', 'investment', 'industry', 'trade'],
-            'Sports': ['cricket', 'football', 'sports', 'match', 'game', 'player', 'team', 'tournament', 'stadium'],
-        }
+        processed = self._process_articles(articles)
+        if not processed:
+            return self.stats
         
-        for category, keywords in categories.items():
-            if any(keyword in text for keyword in keywords):
-                return category
+        saved_ids = self._save_to_database(processed)
         
-        return 'General'
+        if saved_ids:
+            self._create_incidents(saved_ids)
+        
+        return self.stats
+    
+    def print_stats(self):
+        """Print detailed statistics"""
+        print("\n" + "=" * 70)
+        print("📊 FINAL STATISTICS")
+        print("=" * 70)
+        print(f"   Fetched:       {self.stats['fetched']}")
+        print(f"   Saved:         {self.stats['inserted']}")
+        print(f"   Duplicates:    {self.stats['duplicates']}")
+        print(f"   Incidents:     {self.stats['incidents_created']} new, {self.stats['incidents_updated']} updated")
+        
+        print(f"\n📰 Sources Distribution:")
+        total = sum(self.stats['by_category'].values())
+        if total > 0:
+            for cat in ['public', 'neutral', 'political']:
+                count = self.stats['by_category'][cat]
+                pct = (count / total * 100)
+                icon = {'public': '🟢', 'neutral': '🔵', 'political': '🟡'}[cat]
+                print(f"   {icon} {cat.upper():10s} {count:3d} ({pct:5.1f}%)")
+        
+        print(f"\n📋 By Incident Type:")
+        for itype, count in sorted(self.stats['by_incident'].items(), key=lambda x: x[1], reverse=True):
+            print(f"   {itype:15s} {count}")
+        print("=" * 70)
