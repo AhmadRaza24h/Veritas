@@ -101,3 +101,47 @@ class AnalysisService:
     def get_user_recommendations(user_id, limit=10):
         """Get personalized recommendations for a user."""
         return get_recommendations(user_id, limit=limit)
+    
+    @staticmethod
+    def incidents_over_time(days=30):
+        """
+        Returns:
+        [
+          {'date': '2026-01-19', 'count': 2},
+          {'date': '2026-01-20', 'count': 4},
+        ]
+        """
+        rows = (
+            db.session.query(
+                Incident.first_reported.label('date'),
+                func.count(Incident.incident_id).label('count')
+            )
+            .group_by(Incident.first_reported)
+            .order_by(Incident.first_reported)
+            .all()
+        )
+
+        return [{'date': r.date.isoformat(), 'count': r.count} for r in rows]
+
+    @staticmethod
+    def incidents_by_city():
+        """
+        Location stored as: 'Ahmedabad, Gujarat'
+        """
+        rows = (
+            db.session.query(
+                Incident.location,
+                func.count(Incident.incident_id).label('count')
+            )
+            .group_by(Incident.location)
+            .order_by(func.count(Incident.incident_id).desc())
+            .all()
+        )
+
+        return [
+            {
+                'city': r.location.replace(', Gujarat', ''),
+                'count': r.count
+            }
+            for r in rows
+        ]
