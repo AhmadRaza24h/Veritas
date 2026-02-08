@@ -21,66 +21,8 @@
     font-size: 2rem;
 }
 
-<<<<<<< HEAD
-/* News content styling */
-.news-content {
-    line-height: 1.8;
-    font-size: 1.1rem;
-    text-align: justify;
-}
-
-/* Badge customization */
-.badge {
-    padding: 0.4em 0.8em;
-    font-weight: 500;
-}
-
-/* Footer */
-footer {
-    margin-top: auto;
-}
-
-/* Progress bar customization */
-.progress {
-    border-radius: 10px;
-}
-
-.progress-bar {
-    font-weight: bold;
-    width: calc(var(--score) * 1%)
-}
-
-/* List group styling */
-.list-group-item {
-    border-left: 3px solid transparent;
-    transition: all 0.2s;
-}
-
-.list-group-item:hover {
-    border-left-color: #667eea;
-    background-color: #f8f9fa;
-}
-
-/* Chart container */
-#perspectiveChart {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .jumbotron {
-        padding: 2rem 1rem;
-    }
-    
-    .card-title {
-        font-size: 1rem;
-    }
-}
-=======
 /* Image error handling */
 img[alt] {
     font-size: 0.875rem;
     color: #6c757d;
 }
->>>>>>> 66c376d82864998d9531e3af43e3b549f224b306
