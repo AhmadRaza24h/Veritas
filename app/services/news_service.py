@@ -70,3 +70,118 @@ class NewsService:
         return news_query.order_by(News.published_date.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
+    # ADD AT THE END OF NewsService class (after search_news function)
+
+    @staticmethod
+    def create_or_link_incident(news_article):
+        """
+        Auto-create or link incident when news is added.
+        Called automatically by scheduler/API.
+        """
+        from datetime import timedelta, datetime
+        
+        if not news_article.published_date:
+            news_article.published_date = datetime.utcnow().date()
+        
+        # Find matching incident (7-day window)
+        time_start = news_article.published_date - timedelta(days=7)
+        time_end = news_article.published_date + timedelta(days=7)
+        
+        incident = Incident.query.filter(
+            Incident.location == news_article.location,
+            Incident.incident_type == news_article.incident_type,
+            Incident.first_reported >= time_start,
+            Incident.last_reported <= time_end
+        ).first()
+        
+        if incident:
+            # Update existing incident dates
+            if news_article.published_date < incident.first_reported:
+                incident.first_reported = news_article.published_date
+            if news_article.published_date > incident.last_reported:
+                incident.last_reported = news_article.published_date
+        else:
+            # Create new incident
+            incident = Incident(
+                incident_type=news_article.incident_type,
+                location=news_article.location,
+                first_reported=news_article.published_date,
+                last_reported=news_article.published_date
+            )
+            db.session.add(incident)
+            db.session.flush()
+        
+        # Link news to incident
+        link = IncidentNews.query.filter_by(
+            incident_id=incident.incident_id,
+            news_id=news_article.news_id
+        ).first()
+        
+        if not link:
+            link = IncidentNews(
+                incident_id=incident.incident_id,
+                news_id=news_article.news_id
+            )
+            db.session.add(link)
+        
+        db.session.commit()
+        return incident
+    
+    @staticmethod
+    def add_news_with_incident(title, content='', summary='', location='', 
+                               incident_type='', source_id=None, published_date=None):
+        """
+        Add news from API/scheduler and auto-create incident.
+        
+        USE THIS in your scheduler instead of directly creating News.
+        """
+        from datetime import datetime
+        
+        if not published_date:
+            published_date = datetime.utcnow().date()
+        elif isinstance(published_date, str):
+            try:
+                published_date = datetime.strptime(published_date, '%Y-%m-%d').date()
+            except:
+                published_date = datetime.utcnow().date()
+        
+        # Check duplicate
+        existing = News.query.filter_by(title=title, published_date=published_date).first()
+        if existing:
+            return existing, None
+        
+        # Create news
+        news = News(
+            source_id=source_id,
+            title=title,
+            summary=summary,
+            content=content,
+            location=location or 'Unknown',
+            incident_type=incident_type or 'General',
+            published_date=published_date
+        )
+        db.session.add(news)
+        db.session.flush()
+        
+        # Auto-create incident
+        incident = NewsService.create_or_link_incident(news)
+        return news, incident
+    
+    @staticmethod
+    def fix_existing_ungrouped_news():
+        """
+        ONE-TIME FIX: Group all existing news into incidents.
+        Run this once to fix existing data.
+        """
+        all_news = News.query.all()
+        fixed = 0
+        
+        for news in all_news:
+            existing = IncidentNews.query.filter_by(news_id=news.news_id).first()
+            if not existing:
+                NewsService.create_or_link_incident(news)
+                fixed += 1
+        
+        return fixed
+    
+    

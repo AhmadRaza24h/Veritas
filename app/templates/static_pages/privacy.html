@@ -1,0 +1,220 @@
+{% extends 'base/base.html' %}
+
+{% block title %}
+Privacy Policy - Veritas
+{% endblock title %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h1 class="fw-bold mb-3">Privacy Policy</h1>
+    <p class="lead text-muted mb-4">
+        This page explains how Veritas collects, uses, and protects user information.
+    </p>
+
+    <div class="accordion" id="privacyAccordion">
+
+        <!-- Overview -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#privacyOverview">
+                    Overview
+                </button>
+            </h2>
+            <div id="privacyOverview" class="accordion-collapse collapse show" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <p>
+                        Veritas is designed with privacy as a core principle. The platform
+                        collects only the minimum data required to deliver analytical features.
+                    </p>
+                    <p class="mb-0">
+                        We do not sell personal data, track users for advertising, or perform
+                        behavioral profiling.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Collected -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#dataCollected">
+                    Information We Collect
+                </button>
+            </h2>
+            <div id="dataCollected" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <ul>
+                        <li>
+                            <strong>Account information:</strong>
+                            Username or email (if account creation is enabled)
+                        </li>
+                        <li>
+                            <strong>Usage data:</strong>
+                            News articles viewed, incident categories accessed
+                        </li>
+                        <li>
+                            <strong>Technical data:</strong>
+                            IP address, browser type, and device metadata (non-identifying)
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- How Information Is Used -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#dataUsage">
+                    How Information Is Used
+                </button>
+            </h2>
+            <div id="dataUsage" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <ul>
+                        <li>Generate personalized news recommendations</li>
+                        <li>Improve platform functionality and analysis quality</li>
+                        <li>Maintain system security and prevent misuse</li>
+                        <li>Debug errors and monitor performance</li>
+                    </ul>
+                    <p class="text-muted mb-0">
+                        Veritas does not use collected data for advertising or marketing.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Sharing -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#dataSharing">
+                    Data Sharing & Third Parties
+                </button>
+            </h2>
+            <div id="dataSharing" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <p>
+                        Veritas does not sell, rent, or trade personal information.
+                    </p>
+                    <p class="mb-0">
+                        Data may be processed by trusted infrastructure providers strictly
+                        for hosting, storage, and system operation.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Retention -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#dataRetention">
+                    Data Retention
+                </button>
+            </h2>
+            <div id="dataRetention" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <ul>
+                        <li>User data is retained only as long as necessary</li>
+                        <li>Viewing history may be stored to improve recommendations</li>
+                        <li>Inactive user data may be periodically cleaned</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#security">
+                    Security Measures
+                </button>
+            </h2>
+            <div id="security" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <p>
+                        Veritas uses reasonable technical and organizational safeguards
+                        to protect user data.
+                    </p>
+                    <p class="text-muted mb-0">
+                        While no system can guarantee absolute security, best practices
+                        are followed to minimize risk.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Rights -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#userRights">
+                    User Rights
+                </button>
+            </h2>
+            <div id="userRights" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <ul>
+                        <li>Request access to stored personal information</li>
+                        <li>Request correction of inaccurate data</li>
+                        <li>Request deletion of account and associated data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cookies -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#cookies">
+                    Cookies & Local Storage
+                </button>
+            </h2>
+            <div id="cookies" class="accordion-collapse collapse" data-bs-parent="#privacyAccordion">
+                <div class="accordion-body">
+                    <p>
+                        Veritas uses cookies or local storage strictly for
+                        authentication and session management.
+                    </p>
+                    <p class="text-muted mb-0">
+                        Cookies are not used for tracking or advertising.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Changes -->
+
+        <h2 class="mt-5">
+
+            Changes to This Policy
+
+        </h2>
+
+        <p class="mb-1">
+            This Privacy Policy may be updated as the platform evolves
+            or legal requirements change.
+        </p>
+        <p class="mb-0">
+            Significant updates will be communicated through the platform.
+        </p>
+
+
+        <h2 class="mt-2">
+            Contact
+        </h2>
+
+        <p class="mb-0">
+            For privacy-related questions or requests:
+            <br>
+            <a href="mailto:contact@veritas.example">contact@veritas.example</a>
+        </p>
+
+        <hr class="mt-5">
+
+        <p class="fst-italic text-muted text-center">
+            Veritas respects user privacy and believes transparency builds trust.
+        </p>
+
+
+
+        {% endblock content %}
