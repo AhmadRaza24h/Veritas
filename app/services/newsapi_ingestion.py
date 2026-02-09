@@ -232,7 +232,8 @@ class NewsAPIIngestion:
             self.stats['by_incident'][incident_type] = self.stats['by_incident'].get(incident_type, 0) + 1
             
             article['location'] = location
-            article['incident_type'] = incident_type
+            article['incident_type'] = incident_type  
+            print(f"   ✅ {incident_type:15s} {location:20s} {article['title'][:50]}...")       
             processed.append(article)
         
         self.stats['filtered'] = len(processed)
