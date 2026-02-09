@@ -8,97 +8,49 @@
         border-left: 4px solid;
         transition: transform 0.2s, box-shadow 0.2s;
     }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+    .stat-card.border-success { border-left-color: #198754; }
+    .stat-card.border-info { border-left-color: #0dcaf0; }
+    .stat-card.border-warning { border-left-color: #ffc107; }
+    .stat-card.border-primary { border-left-color: #0d6efd; }
 
-    .stat-card.border-success {
-        border-left-color: #198754;
-    }
-
-    .stat-card.border-info {
-        border-left-color: #0dcaf0;
-    }
-
-    .stat-card.border-warning {
-        border-left-color: #ffc107;
-    }
-
-    .stat-card.border-primary {
-        border-left-color: #0d6efd;
-    }
-
-    .credibility-badge {
-        font-size: 3rem;
-        font-weight: 700;
-        line-height: 1;
-    }
+    .credibility-badge { font-size: 3rem; font-weight: 700; line-height: 1; }
 
     .credibility-ring {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        margin: 0 auto;
+        width: 150px; height: 150px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        position: relative; margin: 0 auto;
     }
-
     .credibility-ring::before {
         content: '';
-        position: absolute;
-        inset: -10px;
-        border-radius: 50%;
+        position: absolute; inset: -10px; border-radius: 50%;
         padding: 10px;
-        background: conic-gradient(var(--ring-color) calc(var(--score) * 1%),
-                #e9ecef calc(var(--score) * 1%));
+        background: conic-gradient(var(--ring-color) calc(var(--score) * 1%), #e9ecef calc(var(--score) * 1%));
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+        -webkit-mask-composite: xor; mask-composite: exclude;
     }
 
     .perspective-stat {
-        padding: 1rem;
-        border-radius: 8px;
+        padding: 1rem; border-radius: 8px;
         background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
-        color: white;
-        text-align: center;
+        color: white; text-align: center;
     }
 
-    .news-item {
-        border-left: 3px solid transparent;
-        transition: all 0.2s;
-    }
-
-    .news-item:hover {
-        border-left-color: #0d6efd;
-        background-color: #f8f9fa;
-        transform: translateX(5px);
-    }
+    .news-item { border-left: 3px solid transparent; transition: all 0.2s; }
+    .news-item:hover { border-left-color: #0d6efd; background-color: #f8f9fa; transform: translateX(5px); }
 
     .incident-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
+        color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;
     }
 
-    .section-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
+    .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-title i { color: #667eea; }
 
-    .section-title i {
-        color: #667eea;
-    }
+    /* Ensure chart containers have fixed-ish height so Chart.js can measure when created */
+    .chart-container { width: 100%; height: 220px; }
+    .chart-container.small { height: 160px; }
 </style>
 {% endblock %}
 
@@ -113,12 +65,12 @@
                 <p class="mb-0">
                     <i class="bi bi-calendar3"></i>
                     {% if incident.first_reported %}
-                    {{ incident.first_reported.strftime('%B %d, %Y') }}
+                        {{ incident.first_reported.strftime('%B %d, %Y') }}
                     {% else %}
-                    Date Unknown
+                        Date Unknown
                     {% endif %}
                     {% if incident.last_reported and incident.first_reported != incident.last_reported %}
-                    - {{ incident.last_reported.strftime('%B %d, %Y') }}
+                        - {{ incident.last_reported.strftime('%B %d, %Y') }}
                     {% endif %}
                 </p>
             </div>
@@ -134,128 +86,130 @@
         <!-- Main Content -->
         <div class="col-lg-8">
             {% if analysis %}
-            <!-- Credibility Score -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h5 class="section-title">
-                        <i class="bi bi-shield-check"></i>
-                        Credibility Analysis
-                    </h5>
+            <div class="accordion mb-4" id="analysisAccordion">
 
-                    <div class="row align-items-center">
-                        <div class="col-md-5 text-center">
-                            <div class="credibility-ring"
-                                style="--score: {{ analysis.credibility_score }}; 
-                                        --ring-color: {% if analysis.credibility_score >= 70 %}#198754{% elif analysis.credibility_score >= 40 %}#ffc107{% else %}#dc3545{% endif %};">
-                                <div class="credibility-badge">
-                                    {{ analysis.credibility_score }}
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <span
-                                    class="badge bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }} px-3 py-2">
-                                    {% if analysis.credibility_score >= 70 %}
-                                    High Credibility
-                                    {% elif analysis.credibility_score >= 40 %}
-                                    Moderate Credibility
-                                    {% else %}
-                                    Low Credibility
-                                    {% endif %}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="col-md-7">
-                            <h6 class="mb-3">Score Breakdown</h6>
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <small class="text-muted">Source Diversity</small>
-                                    <small class="fw-bold">40%</small>
-                                </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 40%"></div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <small class="text-muted">Location Clarity</small>
-                                    <small class="fw-bold">30%</small>
-                                </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-info" role="progressbar" style="width: 30%"></div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <small class="text-muted">Information Completeness</small>
-                                    <small class="fw-bold">30%</small>
-                                </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 30%"></div>
+                <!-- Credibility -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#credibilityPanel" aria-expanded="true">
+                            <i class="bi bi-shield-check me-2"></i> Credibility Analysis
+                        </button>
+                    </h2>
+                    <div id="credibilityPanel" class="accordion-collapse collapse show" data-bs-parent="#analysisAccordion">
+                        <div class="accordion-body">
+                            <div class="card shadow-sm">
+                                <div class="card-body p-4">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-5 text-center">
+                                            <div class="credibility-ring"
+                                                 style="--score: {{ analysis.credibility_score }}; --ring-color: {% if analysis.credibility_score >= 70 %}#198754{% elif analysis.credibility_score >= 40 %}#ffc107{% else %}#dc3545{% endif %};">
+                                                <div class="credibility-badge">{{ analysis.credibility_score }}</div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <span class="badge bg-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}">
+                                                    {% if analysis.credibility_score >= 70 %}High{% elif analysis.credibility_score >= 40 %}Moderate{% else %}Low{% endif %} Credibility
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <h6 class="mb-3">Score Breakdown</h6>
+                                            <div class="mb-2"><small>Source Diversity</small></div>
+                                            <div class="progress mb-2" style="height:6px;"><div class="progress-bar bg-primary" style="width:40%"></div></div>
+                                            <div class="mb-2"><small>Location Clarity</small></div>
+                                            <div class="progress mb-2" style="height:6px;"><div class="progress-bar bg-info" style="width:30%"></div></div>
+                                            <div class="mb-2"><small>Information Completeness</small></div>
+                                            <div class="progress" style="height:6px;"><div class="progress-bar bg-success" style="width:30%"></div></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Perspective Distribution -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h5 class="section-title">
-                        <i class="bi bi-pie-chart"></i>
-                        Source Perspective Analysis
-                    </h5>
+                <!-- Perspective -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#perspectivePanel">
+                            <i class="bi bi-pie-chart me-2"></i> Source Perspective Analysis
+                        </button>
+                    </h2>
+                    <div id="perspectivePanel" class="accordion-collapse collapse" data-bs-parent="#analysisAccordion">
+                        <div class="accordion-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <div class="perspective-stat" style="--bg-start:#198754;--bg-end:#20c997;">
+                                        <div class="fs-2 fw-bold">{{ analysis.perspective.public_pct }}%</div>
+                                        <small>Public</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="perspective-stat" style="--bg-start:#0dcaf0;--bg-end:#0d6efd;">
+                                        <div class="fs-2 fw-bold">{{ analysis.perspective.neutral_pct }}%</div>
+                                        <small>Neutral</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="perspective-stat" style="--bg-start:#ffc107;--bg-end:#fd7e14;">
+                                        <div class="fs-2 fw-bold">{{ analysis.perspective.political_pct }}%</div>
+                                        <small>Political</small>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="perspective-stat" style="--bg-start: #198754; --bg-end: #20c997;">
-                                <div class="fs-2 fw-bold">{{ analysis.perspective.public_pct }}%</div>
-                                <div class="small text-uppercase">Public Sources</div>
+                            <div class="chart-container">
+                                <canvas id="perspectiveChart"></canvas>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="perspective-stat" style="--bg-start: #0dcaf0; --bg-end: #0d6efd;">
-                                <div class="fs-2 fw-bold">{{ analysis.perspective.neutral_pct }}%</div>
-                                <div class="small text-uppercase">Neutral Media</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="perspective-stat" style="--bg-start: #ffc107; --bg-end: #fd7e14;">
-                                <div class="fs-2 fw-bold">{{ analysis.perspective.political_pct }}%</div>
-                                <div class="small text-uppercase">Political Sources</div>
-                            </div>
+
+                            <p class="text-muted mt-3">{{ analysis.perspective.summary }}</p>
                         </div>
                     </div>
+                </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <canvas id="perspectiveChart" height="200"></canvas>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-center">
-                            <div>
-                                <h6 class="mb-2">Analysis Summary</h6>
-                                <p class="text-muted mb-0">{{ analysis.perspective.summary }}</p>
+                <!-- Incidents Over Time -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#timePanel">
+                            <i class="bi bi-graph-up me-2"></i> Incidents Over Time
+                        </button>
+                    </h2>
+                    <div id="timePanel" class="accordion-collapse collapse" data-bs-parent="#analysisAccordion">
+                        <div class="accordion-body">
+                            <div class="chart-container small">
+                                <canvas id="timeIncidentChart"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Incidents by City -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cityPanel">
+                            <i class="bi bi-geo-alt me-2"></i> Incidents by City
+                        </button>
+                    </h2>
+                    <div id="cityPanel" class="accordion-collapse collapse" data-bs-parent="#analysisAccordion">
+                        <div class="accordion-body">
+                            <div class="chart-container small">
+                                <canvas id="cityIncidentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             {% endif %}
 
-            <!-- Related News Articles -->
+            <!-- Related News Articles (unchanged, not in accordion) -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="section-title">
-                        <i class="bi bi-newspaper"></i>
-                        Related News Articles ({{ incident_news|length }})
-                    </h5>
+                    <h5 class="section-title"><i class="bi bi-newspaper"></i> Related News Articles ({{ incident_news|length }})</h5>
 
                     {% if incident_news %}
                     <div class="list-group list-group-flush">
                         {% for news in incident_news %}
-                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}"
-                            class="list-group-item list-group-item-action news-item border-0 py-3">
+                        <a href="{{ url_for('news.news_detail', news_id=news.news_id) }}" class="list-group-item list-group-item-action news-item border-0 py-3">
                             <div class="d-flex w-100 justify-content-between align-items-start mb-2">
                                 <h6 class="mb-0 flex-grow-1">{{ news.title }}</h6>
                                 {% if news.published_date %}
@@ -266,13 +220,10 @@
                             </div>
                             {% if news.source %}
                             <div>
-                                <span
-                                    class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
+                                <span class="badge bg-{{ 'info' if news.source.category == 'neutral' else ('success' if news.source.category == 'public' else 'warning') }}">
                                     <i class="bi bi-building"></i> {{ news.source.source_name }}
                                 </span>
-                                <span class="badge bg-secondary ms-1">
-                                    {{ news.source.category|title }}
-                                </span>
+                                <span class="badge bg-secondary ms-1">{{ news.source.category|title }}</span>
                             </div>
                             {% endif %}
                         </a>
@@ -300,9 +251,7 @@
                                     <p class="text-muted mb-1 small">Total Coverage</p>
                                     <h3 class="mb-0">{{ incident_news|length }}</h3>
                                 </div>
-                                <div class="fs-1 text-primary">
-                                    <i class="bi bi-file-text"></i>
-                                </div>
+                                <div class="fs-1 text-primary"><i class="bi bi-file-text"></i></div>
                             </div>
                         </div>
                     </div>
@@ -310,16 +259,14 @@
 
                 {% if analysis %}
                 <div class="col-12">
-                    <div
-                        class="card stat-card border-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }} shadow-sm">
+                    <div class="card stat-card border-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }} shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <p class="text-muted mb-1 small">Credibility</p>
                                     <h3 class="mb-0">{{ analysis.credibility_score }}/100</h3>
                                 </div>
-                                <div
-                                    class="fs-1 text-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}">
+                                <div class="fs-1 text-{{ 'success' if analysis.credibility_score >= 70 else ('warning' if analysis.credibility_score >= 40 else 'danger') }}">
                                     <i class="bi bi-shield-check"></i>
                                 </div>
                             </div>
@@ -332,58 +279,37 @@
             <!-- Similar Incidents -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <h5 class="section-title">
-                        <i class="bi bi-stack"></i>
-                        Similar Incidents
-                    </h5>
+                    <h5 class="section-title"><i class="bi bi-stack"></i> Similar Incidents</h5>
 
                     {% if similar_incidents %}
                     <div class="list-group list-group-flush">
                         {% for similar in similar_incidents %}
-                        <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}"
-                            class="list-group-item list-group-item-action border-0 px-0 py-3">
+                        <a href="{{ url_for('analysis.analysis_detail', incident_id=similar.incident_id) }}" class="list-group-item list-group-item-action border-0 px-0 py-3">
                             <div class="d-flex align-items-start">
                                 <div class="flex-shrink-0 me-3">
-                                    <div class="bg-light rounded p-2">
-                                        <i class="bi bi-exclamation-circle text-primary"></i>
-                                    </div>
+                                    <div class="bg-light rounded p-2"><i class="bi bi-exclamation-circle text-primary"></i></div>
                                 </div>
                                 <div class="flex-grow-1">
                                     <h6 class="mb-1">{{ similar.incident_type }}</h6>
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-geo-alt"></i> {{ similar.location }}
-                                    </small>
+                                    <small class="text-muted d-block"><i class="bi bi-geo-alt"></i> {{ similar.location }}</small>
                                     {% if similar.first_reported %}
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-calendar"></i> {{ similar.first_reported.strftime('%b %d, %Y')
-                                        }}
-                                    </small>
+                                    <small class="text-muted d-block"><i class="bi bi-calendar"></i> {{ similar.first_reported.strftime('%b %d, %Y') }}</small>
                                     {% endif %}
                                 </div>
-                                <div class="flex-shrink-0">
-                                    <i class="bi bi-chevron-right text-muted"></i>
-                                </div>
+                                <div class="flex-shrink-0"><i class="bi bi-chevron-right text-muted"></i></div>
                             </div>
                         </a>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-4 text-muted">
-                        <i class="bi bi-search fs-3 d-block mb-2"></i>
-                        <small>No similar incidents found</small>
-                    </div>
+                    <div class="text-center py-4 text-muted"><i class="bi bi-search fs-3 d-block mb-2"></i><small>No similar incidents found</small></div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Actions -->
             <div class="d-grid gap-2">
-                <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Back to News
-                </a>
-                <a href="#" class="btn btn-outline-primary" onclick="window.print(); return false;">
-                    <i class="bi bi-printer"></i> Print Report
-                </a>
+                <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to News</a>
             </div>
         </div>
     </div>
@@ -392,55 +318,124 @@
 
 {% block extra_js %}
 <script>
-    {% if analysis %}
-    // Perspective Distribution Chart
-    const ctx = document.getElementById('perspectiveChart');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Public Sources', 'Neutral Media', 'Political Sources'],
-            datasets: [{
-                data: [
-                    {{ analysis.perspective.public_pct }},
-            {{ analysis.perspective.neutral_pct }},
-                    {{ analysis.perspective.political_pct }}
-                ],
-        backgroundColor: [
-        'rgba(25, 135, 84, 0.8)',
-        'rgba(13, 202, 240, 0.8)',
-        'rgba(255, 193, 7, 0.8)'
-    ],
-        borderColor: [
-        'rgba(25, 135, 84, 1)',
-        'rgba(13, 202, 240, 1)',
-        'rgba(255, 193, 7, 1)'
-    ],
-        borderWidth: 2
-            }]
-        },
-        options: {
+{% if analysis %}
+// defensive: ensure Chart.js exists
+if (typeof Chart === 'undefined') {
+  console.warn('Chart.js is not loaded. Charts will not render.');
+} else {
+  // Chart instances (create once)
+  let perspectiveChart = null;
+  let timeChart = null;
+  let cityChart = null;
+
+  // helpers to create charts
+  function createPerspectiveChart() {
+    if (perspectiveChart) return;
+    const el = document.getElementById('perspectiveChart');
+    if (!el) return;
+    const ctx = el.getContext('2d');
+
+    const publicPct = Number({{ analysis.perspective.public_pct or 0 }});
+    const neutralPct = Number({{ analysis.perspective.neutral_pct or 0 }});
+    const politicalPct = Number({{ analysis.perspective.political_pct or 0 }});
+
+    perspectiveChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Public', 'Neutral', 'Political'],
+        datasets: [{
+          data: [publicPct, neutralPct, politicalPct],
+          backgroundColor: ['#198754', '#0dcaf0', '#ffc107'],
+          borderColor: ['#198754', '#0dcaf0', '#ffc107'],
+          borderWidth: 1
+        }]
+      },
+      options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    padding: 15,
-                    font: {
-                        size: 12
-                    }
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function (context) {
-                        return context.label + ': ' + context.parsed + '%';
-                    }
-                }
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return ctx.label + ': ' + ctx.parsed + '%';
+              }
             }
+          }
         }
-    }
+      }
     });
-    {% endif %}
+  }
+
+  function createTimeChart() {
+    if (timeChart) return;
+    const el = document.getElementById('timeIncidentChart');
+    if (!el) return;
+    const ctx = el.getContext('2d');
+    const raw = {{ time_data | tojson | safe }};
+    if (!raw || !raw.length) return;
+    const labels = raw.map(d => d.date);
+    const data = raw.map(d => d.count);
+    timeChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Incidents', data: data, borderWidth: 2, tension: 0.35, fill: false }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  function createCityChart() {
+    if (cityChart) return;
+    const el = document.getElementById('cityIncidentChart');
+    if (!el) return;
+    const ctx = el.getContext('2d');
+    const raw = {{ city_data | tojson | safe }};
+    if (!raw || !raw.length) return;
+    const labels = raw.map(d => d.city);
+    const data = raw.map(d => d.count);
+    cityChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Incidents', data: data }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // create charts when panels become visible (and only once)
+  function setupAccordionChartCreation() {
+    // perspective
+    const perspectivePanel = document.getElementById('perspectivePanel');
+    if (perspectivePanel) {
+      perspectivePanel.addEventListener('shown.bs.collapse', function () { createPerspectiveChart(); });
+      // If panel already shown (unlikely since collapsed by default) create now
+      if (perspectivePanel.classList.contains('show')) createPerspectiveChart();
+    }
+
+    // time
+    const timePanel = document.getElementById('timePanel');
+    if (timePanel) {
+      timePanel.addEventListener('shown.bs.collapse', function () { createTimeChart(); });
+      if (timePanel.classList.contains('show')) createTimeChart();
+    }
+
+    // city
+    const cityPanel = document.getElementById('cityPanel');
+    if (cityPanel) {
+      cityPanel.addEventListener('shown.bs.collapse', function () { createCityChart(); });
+      if (cityPanel.classList.contains('show')) createCityChart();
+    }
+  }
+
+  // run setup on DOM ready
+  document.addEventListener('DOMContentLoaded', function() {
+    setupAccordionChartCreation();
+    // also create perspective/time/city if you'd like to pre-render visible charts:
+    const credShown = document.getElementById('credibilityPanel')?.classList.contains('show');
+    if (credShown) {
+      // credibility is not a Chart.js chart; skip
+    }
+    // For convenience: if you want to auto-open perspective and draw immediately, uncomment:
+    // createPerspectiveChart();
+  });
+}
+{% endif %}
 </script>
 {% endblock %}

@@ -4,6 +4,8 @@ Analysis service for orchestrating analysis operations.
 from datetime import datetime
 from app.models import AnalysisCache, Incident, IncidentNews, News
 from app.extensions import db
+from sqlalchemy import func
+
 from app.utils import (
     calculate_credibility_score,
     calculate_perspective_distribution,
@@ -101,3 +103,55 @@ class AnalysisService:
     def get_user_recommendations(user_id, limit=10):
         """Get personalized recommendations for a user."""
         return get_recommendations(user_id, limit=limit)
+    
+    @staticmethod
+    def incidents_over_time(incident_id):
+        rows = (
+            db.session.query(
+                News.published_date.label('date'),
+                func.count(News.news_id).label('count')
+            )
+            .join(IncidentNews, IncidentNews.news_id == News.news_id)
+            .filter(IncidentNews.incident_id == incident_id)
+            .group_by(News.published_date)
+            .order_by(News.published_date)
+            .all()
+        )
+
+        return [
+            {
+                'date': r.date.strftime('%Y-%m-%d'),
+                'count': r.count
+            }
+            for r in rows
+            if r.date
+        ]
+
+
+
+    @staticmethod
+    def incidents_by_city(incident_id):
+        # get incident first
+        incident = Incident.query.get(incident_id)
+        if not incident:
+            return []
+
+        rows = (
+            db.session.query(
+                News.location.label('city'),
+                func.count(News.news_id).label('count')
+            )
+            .join(IncidentNews, IncidentNews.news_id == News.news_id)
+            .join(Incident, Incident.incident_id == IncidentNews.incident_id)
+            .filter(Incident.incident_type == incident.incident_type)
+            .group_by(News.location)
+            .order_by(func.count(News.news_id).desc())
+            .all()
+        )
+
+        return [
+            {'city': r.city, 'count': r.count}
+            for r in rows if r.city
+        ]
+
+

@@ -43,7 +43,6 @@ def register_blueprints(app):
     from app.routes.api import api_bp
     from app.routes.auth import auth_bp
     from app.routes.static_pages import static_bp
-
     app.register_blueprint(main_bp)
     app.register_blueprint(news_bp, url_prefix='/news')
     app.register_blueprint(analysis_bp, url_prefix='/analysis') 

@@ -13,7 +13,7 @@ class UserHistory(db.Model):
     history_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'))
     news_id = db.Column(db.Integer, db.ForeignKey('news.news_id', ondelete='CASCADE'))
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=datetime.now)
     
     # Relationships
     news = db.relationship('News', backref='history')

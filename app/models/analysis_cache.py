@@ -17,7 +17,7 @@ class AnalysisCache(db.Model):
     neutral_pct = db.Column(db.Integer)
     political_pct = db.Column(db.Integer)
     perspective_summary = db.Column(db.Text)
-    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    generated_at =  db.Column(db.DateTime, default=datetime.now)
     
     __table_args__ = (
         db.CheckConstraint('credibility_score BETWEEN 0 AND 100', name='check_credibility'),
