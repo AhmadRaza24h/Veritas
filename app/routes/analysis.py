@@ -30,12 +30,16 @@ def analysis_detail(incident_id):
     #Get incidents by city
     city_data = AnalysisService.incidents_by_city(incident_id)
 
+    incident_news = AnalysisService.get_related_news(incident)
+
+
     
     return render_template(
     'analysis/detail.html',
     incident=incident,
     analysis=analysis,
     time_data=time_data,
+    incident_news=incident_news,
     city_data=city_data,
     similar_incidents=similar_incidents
 )

@@ -153,5 +153,23 @@ class AnalysisService:
             {'city': r.city, 'count': r.count}
             for r in rows if r.city
         ]
+    
+    @staticmethod
+    def get_related_news(incident):
+        """
+        Fetch news related to an incident using incident_type + location
+        """
+        if not incident:
+            return []
+
+        return (
+            News.query
+            .filter(
+                News.incident_type == incident.incident_type,
+                News.location == incident.location
+            )
+            .order_by(News.published_date.desc())
+            .all()
+        )
 
 

@@ -4,6 +4,8 @@ Flask Application Factory with Scheduler.
 from flask import Flask
 from app.config import config
 from app.extensions import db, migrate, jwt, bcrypt
+from flask import jsonify
+from flask_jwt_extended import unset_jwt_cookies
 
 
 def create_app(config_name='development'):
@@ -71,22 +73,30 @@ def register_error_handlers(app):
 
 def register_jwt_callbacks(app):
     """Register JWT callbacks."""
-    from flask import jsonify
-    
+
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({
+        print("🔥 EXPIRED TOKEN CALLBACK HIT")
+        print("JWT HEADER:", jwt_header)
+        print("JWT PAYLOAD:", jwt_payload)
+
+        response = jsonify({
             'error': 'Token has expired',
             'message': 'Please login again'
-        }), 401
-    
+        })
+        unset_jwt_cookies(response)
+        return response, 401
+
+
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        return jsonify({
+        response = jsonify({
             'error': 'Invalid token',
             'message': 'Please login again'
-        }), 401
-    
+        })
+        unset_jwt_cookies(response)
+        return response, 401
+
     @jwt.unauthorized_loader
     def missing_token_callback(error):
         return jsonify({
