@@ -13,27 +13,33 @@ news_bp = Blueprint('news', __name__)
 
 @news_bp.route('/')
 def news_list():
-    """Display paginated list of news articles."""
+    """News listing page with filter support."""
     page = request.args.get('page', 1, type=int)
-    per_page = 20
+    category = request.args.get('category')
+    location = request.args.get('location')
+    incident_type = request.args.get('type')  # This handles the incident filter
     
-    # Get paginated news
-    pagination = News.query.order_by(News.published_date.desc()).paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
+    query = News.query
+    
+    if category:
+        query = query.filter_by(incident_type=category)
+    
+    if incident_type:  # Filter by incident type from navbar
+        query = query.filter_by(incident_type=incident_type)
+    
+    if location:
+        query = query.filter(News.location.ilike(f'%{location}%'))
+    
+    pagination = query.order_by(News.published_date.desc()).paginate(
+        page=page, per_page=20, error_out=False
     )
     
-    # Calculate total
-    total = News.query.count()
-    
     return render_template(
-        'news/list.html',
-        news_list=pagination.items,  # Changed from 'news' to 'news_list'
+        'news/list.html', 
+        news_list=pagination.items, 
         pagination=pagination,
-        page=page,
-        per_page=per_page,
-        total=total
+        incident_type=incident_type,  # Pass to template
+        location=location
     )
 
 

@@ -53,19 +53,16 @@
         <div class="card-body">
             <form method="get" action="{{ url_for('news.news_list') }}">
                 <div class="row g-3">
+
                     <div class="col-md-4">
-                        <input type="text" class="form-control" name="q" placeholder="Search articles..."
-                            value="{{ query or '' }}">
-                    </div>
-                    <div class="col-md-3">
                         <input type="text" class="form-control" name="location" placeholder="Location"
                             value="{{ location or '' }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <input type="text" class="form-control" name="type" placeholder="Incident Type"
                             value="{{ incident_type or '' }}">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-search"></i> Search
                         </button>

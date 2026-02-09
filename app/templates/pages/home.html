@@ -303,13 +303,16 @@
 
     <div class="row">
         <!-- Latest News Section -->
-        <div class="col-lg-8 mb-4">
+        <div class="{% if is_logged_in %}col-lg-8{% else %}col-lg-12{% endif %} mb-4">
+
             <h2 class="section-title">
                 <i class="bi bi-clock-history text-primary"></i> Latest News
             </h2>
 
             {% if latest_news %}
-            <div class="row row-cols-1 row-cols-md-2 g-4">
+            <div
+                class="row row-cols-1 row-cols-md-2 {% if is_logged_in %} row-cols-lg-2 {% else %} row-cols-lg-3 {% endif %} g-4">
+
                 {% for news in latest_news %}
                 <div class="col">
                     <div class="card news-card">
@@ -379,6 +382,7 @@
         </div>
 
         <!-- Recommendations Section -->
+        {% if is_logged_in %}
         <div class="col-lg-4 mb-4">
             <h3 class="section-title">
                 <i class="bi bi-star text-warning"></i> For You
@@ -406,7 +410,6 @@
                                 <i class="bi bi-tag-fill"></i> {{ news.incident_type }}
                             </span>
                             {% endif %}
-
                             {% if news.published_date %}
                             <small class="text-muted">
                                 {{ news.published_date.strftime('%b %d') }}
@@ -421,29 +424,15 @@
             <div class="card recommendation-card">
                 <div class="card-body text-center py-4">
                     <i class="bi bi-lightbulb fs-1 text-muted"></i>
-                    <p class="text-muted mb-0 mt-3">No recommendations yet. Browse news to get personalized suggestions!
+                    <p class="text-muted mb-0 mt-3">
+                        Browse news to get personalized recommendations.
                     </p>
                 </div>
             </div>
             {% endif %}
-
-            <!-- Quick Links -->
-            <div class="card mt-4" style="border: none; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <div class="card-body p-4">
-                    <h5 class="mb-3 fw-bold">
-                        <i class="bi bi-grid text-primary"></i> Quick Access
-                    </h5>
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-primary">
-                            <i class="bi bi-list-ul"></i> All News
-                        </a>
-                        <a href="{{ url_for('main.home') }}" class="btn btn-outline-info">
-                            <i class="bi bi-house"></i> Home
-                        </a>
-                    </div>
-                </div>
-            </div>
         </div>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

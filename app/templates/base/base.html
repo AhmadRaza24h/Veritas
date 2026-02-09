@@ -25,11 +25,86 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Home -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.home') }}">Home</a>
+                        <a class="nav-link" href="{{ url_for('main.home') }}">
+                            <i class="bi bi-house"></i> Home
+                        </a>
                     </li>
+
+                    <!-- News -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('news.news_list') }}">News</a>
+                        <a class="nav-link" href="{{ url_for('news.news_list') }}">
+                            <i class="bi bi-newspaper"></i> News
+                        </a>
+                    </li>
+
+                    <!-- Incidents Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="incidentsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-exclamation-triangle"></i> Incidents
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="incidentsDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Crime') }}">
+                                    <i class="bi bi-shield-exclamation text-danger"></i> Crime
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Fire') }}">
+                                    <i class="bi bi-fire text-warning"></i> Fire
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Accident') }}">
+                                    <i class="bi bi-exclamation-octagon text-danger"></i> Accident
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Weather') }}">
+                                    <i class="bi bi-cloud-rain text-info"></i> Weather
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Infrastructure') }}">
+                                    <i class="bi bi-building text-secondary"></i> Infrastructure
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Business') }}">
+                                    <i class="bi bi-briefcase text-primary"></i> Business
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Health') }}">
+                                    <i class="bi bi-heart-pulse text-danger"></i> Health
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Education') }}">
+                                    <i class="bi bi-book text-success"></i> Education
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Politics') }}">
+                                    <i class="bi bi-bank text-dark"></i> Politics
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Sports') }}">
+                                    <i class="bi bi-trophy text-warning"></i> Sports
+                                </a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('news.news_list') }}">
+                                    <i class="bi bi-grid"></i> <strong>All Incidents</strong>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
 
                     <!-- Show when NOT logged in -->
@@ -67,7 +142,6 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
     <!-- Footer -->
     <footer class="bg-dark text-white mt-5 pt-5 pb-4">
         <div class="container" style="color: rgb(239, 250, 231);">
@@ -165,31 +239,147 @@
         </div>
     </footer>
 
-
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    <!-- Auth Check Script -->
+    <!-- ✨ ENHANCED AUTH CHECK SCRIPT WITH AUTO TOKEN REFRESH ✨ -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log('🔐 Veritas Auth System Initialized...');
+
+            // Get stored data
             const user = JSON.parse(localStorage.getItem('user'));
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+
+            // DOM elements
             const loginNavItem = document.getElementById('loginNavItem');
             const userNavItem = document.getElementById('userNavItem');
             const navUsername = document.getElementById('navUsername');
 
-            if (user) {
-                loginNavItem.classList.add('d-none');
-                userNavItem.classList.remove('d-none');
-                navUsername.textContent = user.username;
-            } else {
-                loginNavItem.classList.remove('d-none');
-                userNavItem.classList.add('d-none');
+            // ===== FUNCTION: Check if JWT token is expired =====
+            function isTokenExpired(token) {
+                if (!token) return true;
+
+                try {
+                    // Decode JWT token (format: header.payload.signature)
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const expiry = payload.exp * 1000; // Convert to milliseconds
+                    const now = Date.now();
+                    const isExpired = now >= expiry;
+
+                    if (isExpired) {
+                        console.log('⏰ Token expired at:', new Date(expiry).toLocaleString());
+                    } else {
+                        const minutesLeft = Math.round((expiry - now) / 1000 / 60);
+                        console.log(`✅ Token valid for ${minutesLeft} more minutes`);
+                    }
+
+                    return isExpired;
+                } catch (e) {
+                    console.error('❌ Error parsing token:', e);
+                    return true;
+                }
             }
 
+            // ===== FUNCTION: Refresh access token using refresh token =====
+            async function refreshAccessToken() {
+                if (!refreshToken) {
+                    console.log('❌ No refresh token available');
+                    return false;
+                }
+
+                console.log('🔄 Attempting to refresh access token...');
+
+                try {
+                    const response = await fetch('/auth/api/refresh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${refreshToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('access_token', data.access_token);
+                        console.log('✅ Token refreshed successfully!');
+                        return true;
+                    } else {
+                        const error = await response.json();
+                        console.log('❌ Token refresh failed:', error.message || response.status);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('❌ Token refresh error:', error);
+                    return false;
+                }
+            }
+
+            // ===== FUNCTION: Clear all auth data =====
+            function clearAuthData() {
+                console.log('🧹 Clearing authentication data...');
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user');
+            }
+
+            // ===== MAIN: Check token and refresh if needed =====
+            if (user && accessToken) {
+                if (isTokenExpired(accessToken)) {
+                    console.log('🔄 Access token expired, attempting refresh...');
+
+                    const refreshed = await refreshAccessToken();
+
+                    if (!refreshed) {
+                        console.log('❌ Token refresh failed, clearing session...');
+                        clearAuthData();
+
+                        // Check if we're on a protected page
+                        const publicPages = ['/', '/news', '/auth/login', '/auth/register'];
+                        const currentPath = window.location.pathname;
+                        const isPublicPage = publicPages.some(page => currentPath === page || currentPath.startsWith(page));
+
+                        if (!isPublicPage) {
+                            console.log('🔒 Redirecting to login (protected page)...');
+                            const redirectUrl = encodeURIComponent(currentPath + window.location.search);
+                            window.location.href = `/auth/login?redirect=${redirectUrl}`;
+                            return; // Stop execution
+                        } else {
+                            console.log('ℹ️  Staying on public page');
+                        }
+                    }
+                }
+            }
+
+            // ===== UPDATE NAVBAR UI =====
+            const currentUser = localStorage.getItem('user');
+            const currentToken = localStorage.getItem('access_token');
+
+            if (currentUser && currentToken && !isTokenExpired(currentToken)) {
+                const userData = JSON.parse(currentUser);
+                console.log('✅ User logged in:', userData.username);
+
+                loginNavItem?.classList.add('d-none');
+                userNavItem?.classList.remove('d-none');
+                if (navUsername) {
+                    navUsername.textContent = userData.username;
+                }
+            } else {
+                console.log('ℹ️  No active session');
+
+                loginNavItem?.classList.remove('d-none');
+                userNavItem?.classList.add('d-none');
+            }
+
+            // ===== LOGOUT BUTTON =====
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async (e) => {
                     e.preventDefault();
+
+                    console.log('🚪 Logging out...');
 
                     const token = localStorage.getItem('access_token');
                     if (token) {
@@ -199,15 +389,49 @@
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
                         } catch (error) {
-                            console.error('Logout error:', error);
+                            console.error('Logout API error:', error);
                         }
                     }
 
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('user');
+                    clearAuthData();
+                    console.log('✅ Logged out successfully');
                     window.location.href = '/';
                 });
             }
+
+            // ===== AUTO-REFRESH: Schedule token refresh 5 minutes before expiry =====
+            if (user && accessToken && !isTokenExpired(accessToken)) {
+                try {
+                    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                    const expiry = payload.exp * 1000;
+                    const now = Date.now();
+                    const timeUntilExpiry = expiry - now;
+                    const refreshTime = timeUntilExpiry - (5 * 60 * 1000); // 5 minutes before expiry
+
+                    if (refreshTime > 0) {
+                        const minutesUntilRefresh = Math.round(refreshTime / 1000 / 60);
+                        console.log(`⏱️  Auto-refresh scheduled in ${minutesUntilRefresh} minutes`);
+
+                        setTimeout(async () => {
+                            console.log('🔄 Auto-refresh timer triggered...');
+                            const refreshed = await refreshAccessToken();
+
+                            if (refreshed) {
+                                console.log('✅ Auto-refresh successful!');
+                            } else {
+                                console.log('❌ Auto-refresh failed, user may need to login again');
+                            }
+                        }, refreshTime);
+                    } else {
+                        console.log('⚠️  Token expires soon, attempting immediate refresh...');
+                        await refreshAccessToken();
+                    }
+                } catch (e) {
+                    console.error('❌ Auto-refresh scheduling error:', e);
+                }
+            }
+
+            console.log('✅ Auth system ready!');
         });
     </script>
 
