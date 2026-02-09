@@ -272,24 +272,56 @@
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+
         const alertDiv = document.getElementById('registerAlert');
         const btnText = document.getElementById('registerBtnText');
         const spinner = document.getElementById('registerSpinner');
 
-        if (password !== confirmPassword) {
-            alertDiv.className = 'alert alert-danger';
-            alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Passwords do not match';
-            alertDiv.classList.remove('d-none');
+        // reset alert
+        alertDiv.className = 'alert d-none';
+        alertDiv.innerHTML = '';
+
+        // 🔐 REGEX
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+
+        // ❌ Username
+        if (username.length < 3) {
+            showError("Username must be at least 3 characters");
             return;
         }
 
+        // ❌ Email
+        if (!emailRegex.test(email)) {
+            showError("Please enter a valid email address");
+            return;
+        }
+
+        // ❌ Password length
+        if (password.length < 6) {
+            showError("Password must be at least 6 characters");
+            return;
+        }
+
+        // ❌ Password special char
+        if (!specialCharRegex.test(password)) {
+            showError("Password must contain at least one special character");
+            return;
+        }
+
+        // ❌ Confirm password
+        if (password !== confirmPassword) {
+            showError("Passwords do not match");
+            return;
+        }
+
+        // loading state
         btnText.classList.add('d-none');
         spinner.classList.remove('d-none');
-        alertDiv.classList.add('d-none');
 
         try {
             const response = await fetch('/auth/api/register', {
@@ -300,30 +332,33 @@
 
             const data = await response.json();
 
-            if (response.ok) {
-                localStorage.setItem('access_token', data.access_token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                alertDiv.className = 'alert alert-success';
-                alertDiv.innerHTML = '<i class="bi bi-check-circle-fill"></i> Account created successfully! Redirecting...';
-                alertDiv.classList.remove('d-none');
-
-                setTimeout(() => window.location.href = '/', 1000);
-            } else {
-                alertDiv.className = 'alert alert-danger';
-                alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + (data.error || 'Registration failed');
-                alertDiv.classList.remove('d-none');
-
-                btnText.classList.remove('d-none');
-                spinner.classList.add('d-none');
+            if (!response.ok) {
+                throw new Error(data.error || "Registration failed");
             }
-        } catch (error) {
-            alertDiv.className = 'alert alert-danger';
-            alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> An error occurred. Please try again.';
+
+            // ✅ SUCCESS
+            alertDiv.className = 'alert alert-success';
+            alertDiv.innerHTML =
+                '<i class="bi bi-check-circle-fill"></i> Account created successfully. Please login.';
             alertDiv.classList.remove('d-none');
 
+            // 🔁 redirect to login (correct JWT flow)
+            setTimeout(() => {
+                window.location.href = "{{ url_for('auth.login_page') }}";
+            }, 1500);
+
+        } catch (error) {
+            showError(error.message);
+        } finally {
             btnText.classList.remove('d-none');
             spinner.classList.add('d-none');
+        }
+
+        function showError(message) {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.innerHTML =
+                '<i class="bi bi-exclamation-triangle-fill"></i> ' + message;
+            alertDiv.classList.remove('d-none');
         }
     });
 </script>
