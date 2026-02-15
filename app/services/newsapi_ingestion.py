@@ -4,6 +4,7 @@ With improved similarity detection, incident classification, and location extrac
 """
 import requests
 import re
+from collections import defaultdict
 from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -71,80 +72,303 @@ class NewsAPIIngestion:
         'Czech Republic': ['Czech Republic', 'Czech']
     }
 
-    # US States for better USA location detection
-    US_STATES = {
-        'California': ['California', 'CA'],
-        'Texas': ['Texas', 'TX'],
-        'New York': ['New York', 'NY'],
-        'Florida': ['Florida', 'FL'],
-        'Illinois': ['Illinois', 'IL'],
-        'Pennsylvania': ['Pennsylvania', 'PA'],
-        'Ohio': ['Ohio', 'OH'],
-        'Georgia': ['Georgia', 'GA'],
-        'North Carolina': ['North Carolina', 'NC'],
-        'Michigan': ['Michigan', 'MI'],
-        'Washington': ['Washington State', 'WA'],
-        'Arizona': ['Arizona', 'AZ'],
-        'Massachusetts': ['Massachusetts', 'MA'],
-        'Virginia': ['Virginia', 'VA'],
-        'Colorado': ['Colorado', 'CO']
-    }
-
-    # Indian States for better India location detection
-    INDIAN_STATES = {
-        'Gujarat': ['Gujarat'],
-        'Maharashtra': ['Maharashtra', 'Mumbai', 'Pune'],
-        'Delhi': ['Delhi', 'New Delhi'],
-        'Karnataka': ['Karnataka', 'Bangalore', 'Bengaluru'],
-        'Tamil Nadu': ['Tamil Nadu', 'Chennai'],
-        'Uttar Pradesh': ['Uttar Pradesh', 'UP'],
-        'West Bengal': ['West Bengal', 'Kolkata'],
-        'Rajasthan': ['Rajasthan', 'Jaipur'],
-        'Madhya Pradesh': ['Madhya Pradesh', 'MP'],
-        'Kerala': ['Kerala'],
-        'Punjab': ['Punjab'],
-        'Haryana': ['Haryana'],
-        'Bihar': ['Bihar'],
-        'Andhra Pradesh': ['Andhra Pradesh', 'Hyderabad'],
-        'Telangana': ['Telangana']
+    # Combined states map for countries (avoid short ambiguous abbreviations)
+    STATES = {
+        'United States': {
+            'California': ['California', 'Los Angeles', 'San Francisco', 'San Diego'],
+            'Texas': ['Texas', 'Houston', 'Dallas', 'Austin'],
+            'New York': ['New York', 'New York City', 'Buffalo'],
+            'Florida': ['Florida', 'Miami', 'Orlando'],
+            'Illinois': ['Illinois', 'Chicago'],
+            'Pennsylvania': ['Pennsylvania', 'Philadelphia'],
+            'Ohio': ['Ohio', 'Columbus'],
+            'Georgia': ['Georgia', 'Atlanta'],
+            'North Carolina': ['North Carolina', 'Charlotte', 'Raleigh'],
+            'Michigan': ['Michigan', 'Detroit'],
+            'Washington': ['Washington State', 'Seattle'],
+            'Arizona': ['Arizona', 'Phoenix'],
+            'Massachusetts': ['Massachusetts', 'Boston'],
+            'Virginia': ['Virginia', 'Richmond'],
+            'Colorado': ['Colorado', 'Denver']
+        },
+        'India': {
+            'Gujarat': ['Gujarat', 'Ahmedabad'],
+            'Maharashtra': ['Maharashtra', 'Mumbai', 'Pune'],
+            'Delhi': ['Delhi', 'New Delhi'],
+            'Karnataka': ['Karnataka', 'Bengaluru', 'Bangalore'],
+            'Tamil Nadu': ['Tamil Nadu', 'Chennai'],
+            'Uttar Pradesh': ['Uttar Pradesh', 'Lucknow'],
+            'West Bengal': ['West Bengal', 'Kolkata'],
+            'Rajasthan': ['Rajasthan', 'Jaipur'],
+            'Madhya Pradesh': ['Madhya Pradesh', 'Bhopal'],
+            'Kerala': ['Kerala', 'Thiruvananthapuram'],
+            'Punjab': ['Punjab', 'Chandigarh'],
+            'Haryana': ['Haryana', 'Gurugram'],
+            'Bihar': ['Bihar', 'Patna'],
+            'Andhra Pradesh': ['Andhra Pradesh', 'Vishakhapatnam'],
+            'Telangana': ['Telangana', 'Hyderabad']
+        },
+        'United Kingdom': {
+            'England': ['England', 'London', 'Manchester', 'Birmingham'],
+            'Scotland': ['Scotland', 'Edinburgh', 'Glasgow'],
+            'Wales': ['Wales', 'Cardiff'],
+            'Northern Ireland': ['Northern Ireland', 'Belfast']
+        },
+        'China': {
+            'Beijing': ['Beijing'],
+            'Shanghai': ['Shanghai'],
+            'Guangdong': ['Guangdong', 'Guangzhou', 'Shenzhen'],
+            'Sichuan': ['Sichuan', 'Chengdu']
+        },
+        'Russia': {
+            'Moscow': ['Moscow'],
+            'Saint Petersburg': ['Saint Petersburg'],
+            'Siberia': ['Siberia', 'Novosibirsk']
+        },
+        'France': {
+            'Île-de-France': ['Île-de-France', 'Paris'],
+            'Provence-Alpes-Côte d\'Azur': ['Marseille', 'Nice']
+        },
+        'Germany': {
+            'Bavaria': ['Bavaria', 'Munich'],
+            'Berlin': ['Berlin'],
+            'North Rhine-Westphalia': ['North Rhine-Westphalia', 'Cologne', 'Düsseldorf']
+        },
+        'Japan': {
+            'Tokyo': ['Tokyo'],
+            'Osaka': ['Osaka'],
+            'Hokkaido': ['Hokkaido', 'Sapporo']
+        },
+        'Australia': {
+            'New South Wales': ['New South Wales', 'Sydney'],
+            'Victoria': ['Victoria', 'Melbourne'],
+            'Queensland': ['Queensland', 'Brisbane']
+        },
+        'Canada': {
+            'Ontario': ['Ontario', 'Toronto'],
+            'Quebec': ['Quebec', 'Montreal'],
+            'British Columbia': ['British Columbia', 'Vancouver']
+        },
+        'Brazil': {
+            'São Paulo': ['São Paulo', 'Sao Paulo'],
+            'Rio de Janeiro': ['Rio de Janeiro']
+        },
+        'Mexico': {
+            'Mexico City': ['Mexico City', 'Ciudad de México'],
+            'Jalisco': ['Jalisco', 'Guadalajara']
+        },
+        'Italy': {'Lazio': ['Lazio', 'Rome'], 'Lombardy': ['Lombardy', 'Milan']},
+        'Spain': {'Community of Madrid': ['Madrid'], 'Catalonia': ['Barcelona']},
+        'South Africa': {'Gauteng': ['Gauteng', 'Johannesburg'], 'Western Cape': ['Cape Town']},
+        'Argentina': {'Buenos Aires': ['Buenos Aires']},
+        'South Korea': {'Seoul': ['Seoul'], 'Busan': ['Busan']},
+        'Indonesia': {'Jakarta': ['Jakarta'], 'Java': ['Java', 'Surabaya']},
+        'Turkey': {'Istanbul': ['Istanbul'], 'Ankara': ['Ankara']},
+        'Saudi Arabia': {'Riyadh Province': ['Riyadh'], 'Mecca': ['Mecca']},
+        'Iran': {'Tehran Province': ['Tehran']},
+        'Iraq': {'Baghdad': ['Baghdad']},
+        'Israel': {'Tel Aviv': ['Tel Aviv'], 'Jerusalem': ['Jerusalem']},
+        'Palestine': {'Gaza': ['Gaza'], 'West Bank': ['West Bank', 'Ramallah']},
+        'Egypt': {'Cairo Governorate': ['Cairo']},
+        'Nigeria': {'Lagos State': ['Lagos'], 'Federal Capital Territory': ['Abuja']},
+        'Pakistan': {'Punjab': ['Punjab', 'Lahore'], 'Sindh': ['Sindh', 'Karachi']},
+        'Bangladesh': {'Dhaka Division': ['Dhaka']},
+        'Vietnam': {'Hanoi': ['Hanoi'], 'Ho Chi Minh City': ['Ho Chi Minh City']},
+        'Thailand': {'Bangkok': ['Bangkok']},
+        'Philippines': {'Metro Manila': ['Manila', 'Metro Manila']},
+        'Malaysia': {'Kuala Lumpur': ['Kuala Lumpur']},
+        'Singapore': {'Singapore': ['Singapore']},
+        'New Zealand': {'Auckland': ['Auckland'], 'Wellington': ['Wellington']},
+        'Ukraine': {'Kyiv': ['Kyiv'], 'Lviv': ['Lviv']},
+        'Poland': {'Masovian': ['Warsaw']},
+        'Netherlands': {'North Holland': ['Amsterdam']},
+        'Belgium': {'Brussels-Capital Region': ['Brussels']},
+        'Sweden': {'Stockholm County': ['Stockholm']},
+        'Norway': {'Oslo': ['Oslo']},
+        'Denmark': {'Capital Region': ['Copenhagen']},
+        'Finland': {'Uusimaa': ['Helsinki']},
+        'Switzerland': {'Zurich': ['Zurich']},
+        'Austria': {'Vienna': ['Vienna']},
+        'Greece': {'Attica': ['Athens']},
+        'Portugal': {'Lisbon': ['Lisbon']},
+        'Ireland': {'Leinster': ['Dublin']},
+        'Czech Republic': {'Prague': ['Prague']}
     }
 
     # Source categorization mapping
     SOURCE_CATEGORY_MAP = {
-        # Public (mass readership)
-        "the times of india": "public", "timesofindia.indiatimes.com": "public",
-        "the indian express": "public", "indianexpress.com": "public",
-        "hindustan times": "public", "hindustantimes.com": "public",
-        "the hindu": "public", "thehindu.com": "public",
-        "ndtv": "public", "ndtv.com": "public",
-        "news18": "public", "news18.com": "public",
-        "india today": "public", "indiatoday.in": "public",
-        "theprint": "public", "theprint.in": "public",
-        "scroll": "public", "scroll.in": "public",
-        "the wire": "public", "thewire.in": "public",
-        "the quint": "public", "thequint.com": "public",
-        "cnn": "public", "cnn.com": "public",
-        "bbc": "public", "bbc.com": "public", "bbc.co.uk": "public",
-        "aljazeera": "public", "aljazeera.com": "public",
-        "guardian": "public", "theguardian.com": "public",
-        "new york times": "public", "nytimes.com": "public",
-        "washington post": "public", "washingtonpost.com": "public",
-        
-        # Neutral (wire agencies, business)
-        "reuters": "neutral", "reuters.com": "neutral",
-        "bloomberg": "neutral", "bloomberg.com": "neutral",
-        "associated press": "neutral", "ap.org": "neutral",
-        "afp": "neutral", "agence france-presse": "neutral",
-        "livemint": "neutral", "livemint.com": "neutral",
-        "business standard": "neutral", "business-standard.com": "neutral",
-        "moneycontrol": "neutral", "moneycontrol.com": "neutral",
-        "economictimes": "neutral", "economictimes.indiatimes.com": "neutral",
-        
-        # Political / Official
-        "pib": "political", "pib.gov.in": "political",
-        "dd news": "political", "doordarshan": "political",
-        "newsonair": "political", "all india radio": "political"
-    }
+
+    # ================= PUBLIC (Mass Readership) =================
+    # --- Indian ---
+    "the times of india": "public",
+    "timesofindia.indiatimes.com": "public",
+    "the indian express": "public",
+    "indianexpress.com": "public",
+    "hindustan times": "public",
+    "hindustantimes.com": "public",
+    "the hindu": "public",
+    "thehindu.com": "public",
+    "ndtv": "public",
+    "ndtv.com": "public",
+    "news18": "public",
+    "news18.com": "public",
+    "india today": "public",
+    "indiatoday.in": "public",
+    "theprint": "public",
+    "theprint.in": "public",
+    "scroll": "public",
+    "scroll.in": "public",
+    "the wire": "public",
+    "thewire.in": "public",
+    "the quint": "public",
+    "thequint.com": "public",
+
+    # --- Global Major ---
+    "cnn": "public",
+    "cnn.com": "public",
+    "bbc": "public",
+    "bbc.com": "public",
+    "bbc.co.uk": "public",
+    "bbc news": "public",
+    "al jazeera": "public",
+    "al jazeera english": "public",
+    "aljazeera.com": "public",
+    "guardian": "public",
+    "theguardian.com": "public",
+    "new york times": "public",
+    "nytimes.com": "public",
+    "new york post": "public",
+    "washington post": "public",
+    "washingtonpost.com": "public",
+    "abc news": "public",
+    "abcnews.go.com": "public",
+    "cbs news": "public",
+    "cbsnews.com": "public",
+    "nbc news": "public",
+    "nbcnews.com": "public",
+    "usa today": "public",
+    "usatoday.com": "public",
+    "time": "public",
+    "time.com": "public",
+    "newsweek": "public",
+    "newsweek.com": "public",
+    "axios": "public",
+    "axios.com": "public",
+    "cbc news": "public",
+    "cbc.ca": "public",
+    "rte": "public",
+    "rte.ie": "public",
+    "independent": "public",
+    "independent.co.uk": "public",
+    "independent.ie": "public",
+    "the-independent.com": "public",
+    "the globe and mail": "public",
+    "theglobeandmail.com": "public",
+    "the irish times": "public",
+    "irishtimes.com": "public",
+    "the jerusalem post": "public",
+    "jpost.com": "public",
+    "news24": "public",
+    "news24.com": "public",
+    "la nacion": "public",
+    "lanacion.com.ar": "public",
+    "le monde": "public",
+    "lemonde.fr": "public",
+    "spiegel": "public",
+    "spiegel.de": "public",
+
+    # --- Other Public Sources ---
+    "themarginalian.org": "public",
+    "football italia": "public",
+    "nbcsportsbayarea.com": "public",
+    "yahoo entertainment": "public",
+    "indiancatholicmatters.org": "public",
+    "bgr": "public",
+    "salon": "public",
+    "cna": "public",
+    "toynewsi.com": "public",
+    "twistedsifter.com": "public",
+    "slashdot.org": "public",
+    "infoq.com": "public",
+    "deadline": "public",
+    "lithub.com": "public",
+    "javacodegeeks.com": "public",
+    "hitc": "public",
+    "foot-africa.com": "public",
+    "people": "public",
+    "wired": "public",
+    "dawgs by nature": "public",
+    "variety": "public",
+    "the big lead": "public",
+    "yle news": "public",
+    "techradar": "public",
+    "kuriositas.com": "public",
+    "inside the magic": "public",
+    "cgpersia.com": "public",
+    "tom's hardware uk": "public",
+    "android central": "public",
+    "rediff.com": "public",
+    "4029tv": "public",
+    "rlsbb.to": "public",
+    "securityaffairs.com": "public",
+    "covers.com": "public",
+
+    # ================= NEUTRAL (Wire / Business Heavy) =================
+    "reuters": "neutral",
+    "reuters.com": "neutral",
+    "associated press": "neutral",
+    "apnews.com": "neutral",
+    "ap.org": "neutral",
+    "bloomberg": "neutral",
+    "bloomberg.com": "neutral",
+    "afp": "neutral",
+    "livemint": "neutral",
+    "livemint.com": "neutral",
+    "business standard": "neutral",
+    "business-standard.com": "neutral",
+    "businessline": "neutral",
+    "business insider": "neutral",
+    "moneycontrol": "neutral",
+    "moneycontrol.com": "neutral",
+    "economic times": "neutral",
+    "economictimes.indiatimes.com": "neutral",
+    "financial post": "neutral",
+    "financialpost.com": "neutral",
+    "fortune": "neutral",
+    "fortune.com": "neutral",
+    "handelsblatt": "neutral",
+    "handelsblatt.com": "neutral",
+    "les echos": "neutral",
+    "lesechos.fr": "neutral",
+    "il sole 24 ore": "neutral",
+    "ilsole24ore.com": "neutral",
+    "wirtschafts woche": "neutral",
+    "national post": "neutral",
+    "globenewswire": "neutral",
+
+    # ================= POLITICAL / OFFICIAL =================
+    "pib": "political",
+    "pib.gov.in": "political",
+    "dd news": "political",
+    "doordarshan": "political",
+    "newsonair": "political",
+    "all india radio": "political",
+    "politico": "political",
+    "politico.com": "political",
+    "the hill": "political",
+    "thehill.com": "political",
+    "national review": "political",
+    "breitbart": "political",
+    "breitbart.com": "political",
+    "rt": "political",
+    "russian.rt.com": "political",
+    "rbc": "political",
+    "rbc.ru": "political",
+    "freerepublic.com": "political",
+    "sputnikglobe.com": "political",
+    "the federalist": "political"
+}
+
 
     def __init__(self, api_key):
         self.api_key = api_key
@@ -254,58 +478,219 @@ class NewsAPIIngestion:
         text = re.sub(r'\s+', ' ', text).strip()
         return set(text.split())
 
+
+
     def _classify_incident(self, article):
-        """Improved incident classification"""
-        text = f"{article.get('title','')} {article.get('description','')} {article.get('content','')}".lower()
 
-        RULES = [
-            ('Crime', [
-                'murder','killed','killing','rape','robbery','theft','fraud',
-                'arrest','assault','crime','criminal','shooting','gunfire',
-                'police','custody','investigation','suspect','charged','court',
-                'kidnap','kidnapping','violence','stab','stabbing'
-            ]),
-            ('Politics', [
-                'election','elections','minister','government','parliament',
-                'policy','president','senate','vote','voting','bill','law',
-                'cabinet','congress','political','campaign'
-            ]),
-            ('International', [
-                'war','conflict','diplomacy','summit','sanctions','global',
-                'international','military','border','ceasefire','foreign',
-                'tensions','alliance'
-            ]),
-            ('Business', [
-                'company','market','economy','economic','investment','revenue',
-                'stocks','trade','business','profit','loss','shares','ipo',
-                'corporate','industry','finance','bank','banking'
-            ]),
-            ('Technology', [
-                'ai','artificial intelligence','software','startup','cyber',
-                'tech','technology','app','digital','data','hacking',
-                'cyberattack','innovation','device'
-            ]),
-            ('Health', [
-                'hospital','virus','vaccine','disease','covid','health',
-                'medical','infection','doctor','treatment','surgery'
-            ]),
-            ('Weather', [
-                'flood','flooding','cyclone','storm','heatwave','earthquake',
-                'wildfire','hurricane','rain','snow','temperature',
-                'climate','weather','monsoon'
-            ]),
-            ('Sports', [
-                'match','tournament','cricket','football','league',
-                'championship','sports','final','semi final','goal',
-                'victory','defeat','olympics','world cup'
-            ])
-        ]
+        text = f"{article.get('title','')} {article.get('description','')}".lower()
 
-        for label, keywords in RULES:
-            if any(keyword in text for keyword in keywords):
-                return label
+        # ------------------------------------------------------------
+        # Override Anchors (High Confidence)
+        # ------------------------------------------------------------
 
-        return 'General'
+        OVERRIDES = {
+            "Environment": ["earthquake", "hurricane", "cyclone"],
+            "Sports": ["world cup", "olympics", "championship final"],
+            "Business": ["ipo", "earnings report", "quarterly results"],
+            "Technology": ["ransomware attack", "major data breach"],
+            "Infrastructure": ["plane crash", "train derailment"],
+            "Law": ["supreme court ruling"],
+            "Politics": ["presidential election results"],
+        }
+
+        for category, phrases in OVERRIDES.items():
+            for phrase in phrases:
+                if re.search(rf"\b{re.escape(phrase)}\b", text):
+                    return category
+
+        # ------------------------------------------------------------
+        # Keyword Dictionary (Balanced & Clean)
+        # ------------------------------------------------------------
+
+        CATEGORY_KEYWORDS = {
+
+    "Crime": [
+        "murder", "homicide", "rape", "robbery",
+        "fraud", "shooting", "stabbing",
+        "arrest", "suspect", "charged",
+        "indictment", "kidnapping",
+        "extortion", "smuggling",
+        "drug trafficking", "gang violence",
+        "firearm", "criminal network"
+    ],
+
+    "Politics": [
+        "election", "parliament", "president",
+        "prime minister", "government",
+        "minister", "policy", "campaign",
+        "legislation", "senate",
+        "congress", "cabinet",
+        "coalition", "voter turnout",
+        "referendum", "ballot",
+        "political party", "governance"
+    ],
+
+    "International": [
+        "war", "conflict", "sanctions",
+        "military", "troops", "border",
+        "ceasefire", "diplomatic",
+        "embassy", "foreign relations",
+        "peace talks", "missile",
+        "alliance", "defense pact"
+    ],
+
+    "Business": [
+        "ipo", "earnings", "quarterly results",
+        "stocks", "stock market",
+        "share price", "investors",
+        "merger", "acquisition",
+        "investment", "revenue",
+        "profit", "loss",
+        "layoffs", "corporate",
+        "inflation", "economic growth",
+        "gdp", "bankruptcy"
+    ],
+
+    "Technology": [
+        "artificial intelligence", "machine learning",
+        "cybersecurity", "ransomware",
+        "data breach", "malware",
+        "hacking", "semiconductor",
+        "startup", "software",
+        "tech company", "cloud computing",
+        "blockchain", "robotics",
+        "satellite", "space mission",
+        "nasa", "chip manufacturing"
+    ],
+
+    "Environment": [
+        "earthquake", "flood", "wildfire",
+        "hurricane", "cyclone", "drought",
+        "climate change", "global warming",
+        "carbon emissions", "pollution",
+        "deforestation", "heatwave",
+        "monsoon", "environmental policy",
+        "sustainability", "renewable energy"
+    ],
+
+    "Health": [
+        "virus", "vaccine", "pandemic",
+        "epidemic", "outbreak",
+        "hospital", "medical",
+        "health ministry",
+        "infection", "disease",
+        "treatment", "clinical trial",
+        "public health", "mental health"
+    ],
+
+    "Sports": [
+        "match", "tournament", "league",
+        "championship", "final",
+        "semi-final", "world cup",
+        "olympics", "goal",
+        "athlete", "coach",
+        "cricket", "football",
+        "soccer", "tennis",
+        "basketball", "nba",
+        "nfl", "ipl"
+    ],
+
+    "Entertainment": [
+        "movie", "film", "box office",
+        "celebrity", "concert",
+        "album release", "actor",
+        "actress", "award ceremony",
+        "music festival", "streaming platform",
+        "hollywood", "bollywood"
+    ],
+
+    "Infrastructure": [
+        "plane crash", "aircraft accident",
+        "train derailment",
+        "bridge collapse",
+        "building collapse",
+        "industrial explosion",
+        "factory blast",
+        "road accident",
+        "metro disruption",
+        "construction failure"
+    ],
+
+    "Law": [
+        "court ruling", "supreme court",
+        "legal appeal", "sentencing",
+        "judicial review", "trial",
+        "lawsuit", "verdict",
+        "bail hearing", "constitutional challenge"
+    ],
+
+    "Education": [
+        "university", "school",
+        "curriculum", "exam",
+        "board results",
+        "education policy",
+        "student protest",
+        "academic year",
+        "scholarship"
+    ],
+
+    "Energy": [
+        "oil prices", "gas prices",
+        "energy crisis", "opec",
+        "power grid", "nuclear energy",
+        "solar power", "wind energy",
+        "fuel supply", "electricity outage",
+        "refinery"
+    ],
+
+    "Social Issues": [
+        "protest", "demonstration",
+        "civil unrest", "human rights",
+        "gender equality", "racism",
+        "discrimination", "labor strike",
+        "activist", "social justice"
+    ]
+}
+
+        # ------------------------------------------------------------
+        # Count Unique Keyword Matches Per Category
+        # ------------------------------------------------------------
+
+        category_counts = defaultdict(int)
+
+        for category, keywords in CATEGORY_KEYWORDS.items():
+            for keyword in keywords:
+                if re.search(rf"\b{re.escape(keyword)}\b", text):
+                    category_counts[category] += 1
+
+        if not category_counts:
+            return "General"
+
+        # ------------------------------------------------------------
+        # Determine Winner
+        # ------------------------------------------------------------
+
+        sorted_categories = sorted(
+            category_counts.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        top_category, top_count = sorted_categories[0]
+
+        # Minimum threshold: at least 2 keyword matches
+        if top_count < 2:
+            return "General"
+
+        # Tie handling (difference <= 1)
+        if len(sorted_categories) > 1:
+            second_category, second_count = sorted_categories[1]
+
+            if abs(top_count - second_count) <= 1:
+                return "General"
+
+        return top_category
+
 
     def _extract_location(self, article):
         """
@@ -317,26 +702,17 @@ class NewsAPIIngestion:
         detected_country = None
         detected_state = None
         
-        # Step 1: Check US States first
-        for state_name, variants in self.US_STATES.items():
-            for variant in variants:
-                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
-                    detected_state = state_name
-                    detected_country = 'United States'
-                    return f"{detected_state}, {detected_country}"
-        
-        # Step 2: Check Indian States
-        for state_name, variants in self.INDIAN_STATES.items():
-            for variant in variants:
-                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
-                    detected_state = state_name
-                    detected_country = 'India'
-                    return f"{detected_state}, {detected_country}"
-        
-        # Step 3: Check Countries (if no state found)
+        # Step 1: Check states for any country in the combined STATES mapping
+        for country_name, states_map in self.STATES.items():
+            for state_name, variants in states_map.items():
+                for variant in variants:
+                    if re.search(rf"\b{re.escape(variant)}\b", text, re.IGNORECASE):
+                        return f"{state_name}, {country_name}"
+
+        # Step 2: Check Countries (if no state found)
         for country_name, variants in self.COUNTRIES.items():
             for variant in variants:
-                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
+                if re.search(rf"\b{re.escape(variant)}\b", text, re.IGNORECASE):
                     return country_name
         
         # Fallback

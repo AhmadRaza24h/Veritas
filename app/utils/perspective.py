@@ -1,65 +1,76 @@
 """
-Perspective distribution utility.
+Perspective distribution utility (Group-Based).
 
-Perspective Distribution:
-- Count articles by source type: public, neutral, political
-- Calculate percentage distribution
+Calculates perspective diversity for a single group_id.
+Uses UNIQUE sources only.
 """
 
 
-def calculate_perspective_distribution(incident_news_list):
-    """
-    Calculate perspective distribution for an incident.
-    
-    Args:
-        incident_news_list: List of news articles with sources
-        
-    Returns:
-        dict: Distribution with keys 'public_pct', 'neutral_pct', 'political_pct', 'summary'
-    """
-    if not incident_news_list:
+def calculate_perspective_distribution(group_articles):
+
+    if not group_articles:
         return {
-            'public_pct': 0,
-            'neutral_pct': 0,
-            'political_pct': 0,
-            'summary': 'No perspective data available'
+            "public": 0,
+            "neutral": 0,
+            "political": 0,
+            "public_pct": 0,
+            "neutral_pct": 0,
+            "political_pct": 0,
+            "summary": "No perspective data available"
         }
-    
-    # Count by source type
-    counts = {
-        'public': 0,
-        'neutral': 0,
-        'political': 0
-    }
-    
-    total = 0
-    for news in incident_news_list:
+
+    # UNIQUE sources only
+    unique_sources = {}
+
+    for news in group_articles:
         if news.source and news.source.category:
-            category = news.source.category.lower()
-            if category in counts:
-                counts[category] += 1
-                total += 1
-    
-    # Calculate percentages
+            if news.source_id not in unique_sources:
+                unique_sources[news.source_id] = news.source.category.lower()
+
+    counts = {
+        "public": 0,
+        "neutral": 0,
+        "political": 0
+    }
+
+    for category in unique_sources.values():
+        if category in counts:
+            counts[category] += 1
+
+    total = sum(counts.values())
+
     if total == 0:
         return {
-            'public_pct': 0,
-            'neutral_pct': 0,
-            'political_pct': 0,
-            'summary': 'No categorized sources'
+            **counts,
+            "public_pct": 0,
+            "neutral_pct": 0,
+            "political_pct": 0,
+            "summary": "No categorized sources"
         }
-    
-    public_pct = int(round((counts['public'] / total) * 100))
-    neutral_pct = int(round((counts['neutral'] / total) * 100))
-    political_pct = int(round((counts['political'] / total) * 100))
-    
-    # Generate summary
+
+    public_pct = int(round((counts["public"] / total) * 100))
+    neutral_pct = int(round((counts["neutral"] / total) * 100))
+    political_pct = int(round((counts["political"] / total) * 100))
+
     dominant = max(counts.items(), key=lambda x: x[1])
-    summary = f"Coverage is primarily {dominant[0]} ({dominant[1]}/{total} sources)"
-    
+
+    if dominant[1] == total:
+        summary = f"Coverage is entirely {dominant[0]}"
+    elif dominant[1] >= total * 0.6:
+        summary = f"Coverage is primarily {dominant[0]}"
+    elif all(counts[c] > 0 for c in counts):
+        summary = "Coverage includes multiple perspectives"
+    else:
+        summary = "Coverage shows mixed perspectives"
+
+    # 🔥 ADD SOURCE COUNT
+    summary = f"{summary} ({total} unique source{'s' if total > 1 else ''})"
+
     return {
-        'public_pct': public_pct,
-        'neutral_pct': neutral_pct,
-        'political_pct': political_pct,
-        'summary': summary
+        **counts,
+        "public_pct": public_pct,
+        "neutral_pct": neutral_pct,
+        "political_pct": political_pct,
+        "summary": summary,
+        "total_sources": total  # optional extra field if you want to show separately
     }

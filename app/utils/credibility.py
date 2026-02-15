@@ -1,50 +1,90 @@
 """
-Credibility scoring utility.
+Article-level credibility scoring utility.
 
-Credibility Score Calculation:
-- Source diversity (40%): More diverse sources = higher score
-- Location clarity (30%): Clear location information = higher score
-- Completeness (30%): Complete information (title, content, summary) = higher score
+Credibility Score Calculation (0–100)
+
+Evaluates structural credibility of a news article
+based on cross-source validation within same group_id.
 """
 
+from datetime import timedelta
 
-def calculate_credibility_score(incident_news_list):
+SOURCE_WEIGHT = {
+    "neutral": 1.0,
+    "public": 0.8,
+    "political": 0.6
+}
+
+
+def calculate_credibility_score(article, group_articles):
     """
-    Calculate credibility score for an incident.
-    
+    Calculate credibility score for a single article using group validation.
+
     Args:
-        incident_news_list: List of news articles linked to the incident
-        
+        article: current article object
+        group_articles: list of all articles with same group_id
+
     Returns:
-        int: Credibility score (0-100)
+        int: credibility score (0–100)
     """
-    if not incident_news_list:
+
+    if not group_articles:
         return 0
-    
-    # Calculate source diversity (40%)
-    unique_sources = set()
-    for news in incident_news_list:
-        if news.source_id:
-            unique_sources.add(news.source_id)
-    
-    # Score based on number of unique sources (max 5 sources for 100%)
-    source_diversity_score = min(len(unique_sources) / 5.0, 1.0) * 40
-    
-    # Calculate location clarity (30%)
-    locations_with_clarity = sum(
-        1 for news in incident_news_list 
-        if news.location and len(news.location.strip()) > 0
+
+    # --------------------------------------------------
+    # 1️⃣ Cross-Source Confirmation (50%)
+    # --------------------------------------------------
+
+    unique_sources = {
+        a.source_id for a in group_articles
+        if a.source_id is not None
+    }
+
+    source_count = len(unique_sources)
+
+    cross_source_score = min(source_count / 3.0, 1.0) * 50
+
+
+    # --------------------------------------------------
+    # 2️⃣ Source Reliability Tier (30%)
+    # --------------------------------------------------
+
+    category = (
+        article.source.category.lower()
+        if article.source and article.source.category
+        else "public"
     )
-    location_clarity_score = (locations_with_clarity / len(incident_news_list)) * 30
-    
-    # Calculate completeness (30%)
-    complete_articles = sum(
-        1 for news in incident_news_list
-        if news.title and news.content and news.summary
-    )
-    completeness_score = (complete_articles / len(incident_news_list)) * 30
-    
-    # Total credibility score
-    total_score = source_diversity_score + location_clarity_score + completeness_score
-    
-    return int(round(total_score))
+
+    reliability_score = SOURCE_WEIGHT.get(category, 0.8) * 30
+
+    # --------------------------------------------------
+    # 3️⃣ Time Convergence (20%)
+    # --------------------------------------------------
+
+    close_reports = 0
+
+    for other in group_articles:
+        if other.news_id == article.news_id:
+            continue
+
+        if not other.published_date or not article.published_date:
+            continue
+
+        time_diff = abs(
+            (other.published_date - article.published_date).total_seconds()
+        )
+
+        # Within 1 hour window
+        if time_diff <= 6 * 3600:  # 6 hours
+
+            close_reports += 1
+
+    time_convergence_score = min(close_reports / 5.0, 1.0) * 20
+
+    # --------------------------------------------------
+    # Final Score
+    # --------------------------------------------------
+
+    total_score = cross_source_score + reliability_score + time_convergence_score
+
+    return  max(0, min(100, int(round(total_score))))

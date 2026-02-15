@@ -1,45 +1,68 @@
+
 """
-Analysis blueprint for analysis pages.
+Analysis blueprint for event-based analysis pages.
 """
+from app.models import AnalysisCache, Incident, IncidentNews, News
 from flask import Blueprint, render_template, abort
 from app.services import NewsService, AnalysisService
+from app.extensions import db
 
 analysis_bp = Blueprint('analysis', __name__)
 
 
-@analysis_bp.route('/<int:incident_id>')
-def analysis_detail(incident_id):
-    """Analysis detail page for an incident."""
-    # Get incident
-    incident = NewsService.get_incident_by_id(incident_id)
-    
-    if not incident:
-        abort(404)
-    
-    # Get analysis
-    analysis = AnalysisService.get_or_create_analysis(incident_id)
-    
-    # Get news for this incident
-    incident_news = NewsService.get_incident_news(incident_id)
-    
-    # Get similar incidents
-    similar_incidents = AnalysisService.get_similar_incidents(incident_id, limit=5)
+@analysis_bp.route('/event/<int:group_id>')
+def analysis_detail(group_id):
+    """Analysis detail page for a real-world grouped news event."""
 
-    #Get incidents over time
+    # --------------------------------------------------
+    # Get all articles belonging to this event
+    # --------------------------------------------------
+    group_articles = NewsService.get_news_by_group(group_id)
+
+    incident_link = IncidentNews.query.filter_by(
+            news_id=group_articles[0].news_id
+        ).first()
+    incident_id=incident_link.incident_id
+    incident_data = NewsService.get_incident_by_id(incident_id)
+
+    if not group_articles:
+        abort(404)
+
+    # Use first article for shared info
+    primary_article = group_articles[0]
+    
+    incident_news=NewsService.get_incident_news(incident_id)
+
+    simillar_incidents = AnalysisService.get_similar_incidents(incident_id, limit=5)
+
+    # --------------------------------------------------
+    # Get analysis (group-based)
+    # --------------------------------------------------
+    analysis = AnalysisService.get_or_create_analysis(group_id)
+
+    scores = AnalysisService.get_credibility_scores(primary_article, group_articles)
+           
+
+
+    # --------------------------------------------------
+    # Time-based insights
+    # --------------------------------------------------
     time_data = AnalysisService.incidents_over_time(incident_id)
-    #Get incidents by city
+
+    # --------------------------------------------------
+    # City / location insights
+    # --------------------------------------------------
     city_data = AnalysisService.incidents_by_city(incident_id)
 
-    incident_news = AnalysisService.get_related_news(incident)
+    return render_template (
+        'analysis/detail.html',
+        incident_news=incident_news,
+        analysis=analysis,
+        group_articles=group_articles,
+        scores=scores,
+        time_data=time_data,
+        city_data=city_data,
+        incident=incident_data,
+        similar_incidents=simillar_incidents
 
-
-    
-    return render_template(
-    'analysis/detail.html',
-    incident=incident,
-    analysis=analysis,
-    time_data=time_data,
-    incident_news=incident_news,
-    city_data=city_data,
-    similar_incidents=similar_incidents
-)
+    )

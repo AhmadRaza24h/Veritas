@@ -70,7 +70,11 @@ class NewsService:
         return news_query.order_by(News.published_date.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
-    # ADD AT THE END OF NewsService class (after search_news function)
+    
+    @staticmethod
+    def get_news_by_group(group_id):
+        """Get all news articles by group_id."""
+        return News.query.filter_by(group_id=group_id).order_by(News.published_date.desc()).all()
 
     @staticmethod
     def create_or_link_incident(news_article):

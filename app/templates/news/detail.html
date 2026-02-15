@@ -131,7 +131,7 @@
                     </h5>
                     <p class="mb-3">This news article is connected to a larger incident being monitored by Veritas. View
                         the complete timeline and analysis.</p>
-                    <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}"
+                    <a href="{{ url_for('analysis.analysis_detail', group_id=news.group_id) }}"
                         class="btn btn-warning">
                         <i class="bi bi-bar-chart-fill"></i> View Complete Incident Analysis
                     </a>
@@ -221,10 +221,10 @@
                         <a href="{{ url_for('news.news_list') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Back to All News
                         </a>
-                        {% if incident %}
-                        <a href="{{ url_for('analysis.analysis_detail', incident_id=incident.incident_id) }}"
-                            class="btn btn-warning">
-                            <i class="bi bi-bar-chart-fill"></i> View Incident Analysis
+                        {% if news.group_id %}
+                        <a href="{{ url_for('analysis.analysis_detail', group_id=news.group_id) }}"
+                        class="btn btn-warning">
+                            <i class="bi bi-bar-chart-fill"></i> View Event Analysis
                         </a>
                         {% endif %}
                     </div>
