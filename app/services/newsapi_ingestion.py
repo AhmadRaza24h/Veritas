@@ -10,7 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import logging
 
-from app.models import News, Source
+from app.models import News, Source, Incident, IncidentNews
 from app.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -19,33 +19,95 @@ logger = logging.getLogger(__name__)
 class NewsAPIIngestion:
     """NewsAPI Ingestion Service with enhanced classification and grouping"""
 
-    # Major countries for location extraction
-    COUNTRIES = [
-        'USA', 'United States', 'America', 'UK', 'United Kingdom', 'Britain',
-        'India', 'China', 'Russia', 'France', 'Germany', 'Japan', 'Australia',
-        'Canada', 'Brazil', 'Mexico', 'Italy', 'Spain', 'South Africa',
-        'Argentina', 'South Korea', 'Indonesia', 'Turkey', 'Saudi Arabia',
-        'Iran', 'Iraq', 'Israel', 'Palestine', 'Egypt', 'Nigeria', 'Pakistan',
-        'Bangladesh', 'Vietnam', 'Thailand', 'Philippines', 'Malaysia',
-        'Singapore', 'New Zealand', 'Ukraine', 'Poland', 'Netherlands',
-        'Belgium', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Switzerland',
-        'Austria', 'Greece', 'Portugal', 'Ireland', 'Czech Republic'
-    ]
+    # Major countries and regions
+    COUNTRIES = {
+        'United States': ['USA', 'United States', 'America', 'US'],
+        'United Kingdom': ['UK', 'United Kingdom', 'Britain', 'Great Britain'],
+        'India': ['India'],
+        'China': ['China', 'Chinese'],
+        'Russia': ['Russia', 'Russian Federation'],
+        'France': ['France', 'French'],
+        'Germany': ['Germany', 'German'],
+        'Japan': ['Japan', 'Japanese'],
+        'Australia': ['Australia', 'Australian'],
+        'Canada': ['Canada', 'Canadian'],
+        'Brazil': ['Brazil', 'Brazilian'],
+        'Mexico': ['Mexico', 'Mexican'],
+        'Italy': ['Italy', 'Italian'],
+        'Spain': ['Spain', 'Spanish'],
+        'South Africa': ['South Africa'],
+        'Argentina': ['Argentina'],
+        'South Korea': ['South Korea', 'Korea'],
+        'Indonesia': ['Indonesia'],
+        'Turkey': ['Turkey', 'Turkish'],
+        'Saudi Arabia': ['Saudi Arabia', 'Saudi'],
+        'Iran': ['Iran', 'Iranian'],
+        'Iraq': ['Iraq', 'Iraqi'],
+        'Israel': ['Israel', 'Israeli'],
+        'Palestine': ['Palestine', 'Palestinian'],
+        'Egypt': ['Egypt', 'Egyptian'],
+        'Nigeria': ['Nigeria'],
+        'Pakistan': ['Pakistan'],
+        'Bangladesh': ['Bangladesh'],
+        'Vietnam': ['Vietnam', 'Vietnamese'],
+        'Thailand': ['Thailand'],
+        'Philippines': ['Philippines', 'Filipino'],
+        'Malaysia': ['Malaysia'],
+        'Singapore': ['Singapore'],
+        'New Zealand': ['New Zealand'],
+        'Ukraine': ['Ukraine', 'Ukrainian'],
+        'Poland': ['Poland', 'Polish'],
+        'Netherlands': ['Netherlands', 'Dutch'],
+        'Belgium': ['Belgium'],
+        'Sweden': ['Sweden', 'Swedish'],
+        'Norway': ['Norway', 'Norwegian'],
+        'Denmark': ['Denmark', 'Danish'],
+        'Finland': ['Finland', 'Finnish'],
+        'Switzerland': ['Switzerland', 'Swiss'],
+        'Austria': ['Austria', 'Austrian'],
+        'Greece': ['Greece', 'Greek'],
+        'Portugal': ['Portugal', 'Portuguese'],
+        'Ireland': ['Ireland', 'Irish'],
+        'Czech Republic': ['Czech Republic', 'Czech']
+    }
 
-    # Major cities for location extraction
-    CITIES = [
-        'New York', 'London', 'Paris', 'Tokyo', 'Mumbai', 'Delhi', 'Beijing',
-        'Shanghai', 'Moscow', 'Sydney', 'Toronto', 'Los Angeles', 'Chicago',
-        'Houston', 'San Francisco', 'Washington', 'Boston', 'Seattle',
-        'Berlin', 'Madrid', 'Rome', 'Amsterdam', 'Brussels', 'Vienna',
-        'Stockholm', 'Oslo', 'Copenhagen', 'Helsinki', 'Zurich', 'Geneva',
-        'Dubai', 'Abu Dhabi', 'Riyadh', 'Tel Aviv', 'Jerusalem', 'Cairo',
-        'Lagos', 'Nairobi', 'Johannesburg', 'Cape Town', 'Karachi', 'Lahore',
-        'Dhaka', 'Bangkok', 'Manila', 'Jakarta', 'Singapore', 'Hong Kong',
-        'Seoul', 'Taipei', 'Melbourne', 'Brisbane', 'Auckland', 'Wellington',
-        'Mexico City', 'São Paulo', 'Rio de Janeiro', 'Buenos Aires',
-        'Santiago', 'Lima', 'Bogotá', 'Caracas', 'Havana', 'Miami'
-    ]
+    # US States for better USA location detection
+    US_STATES = {
+        'California': ['California', 'CA'],
+        'Texas': ['Texas', 'TX'],
+        'New York': ['New York', 'NY'],
+        'Florida': ['Florida', 'FL'],
+        'Illinois': ['Illinois', 'IL'],
+        'Pennsylvania': ['Pennsylvania', 'PA'],
+        'Ohio': ['Ohio', 'OH'],
+        'Georgia': ['Georgia', 'GA'],
+        'North Carolina': ['North Carolina', 'NC'],
+        'Michigan': ['Michigan', 'MI'],
+        'Washington': ['Washington State', 'WA'],
+        'Arizona': ['Arizona', 'AZ'],
+        'Massachusetts': ['Massachusetts', 'MA'],
+        'Virginia': ['Virginia', 'VA'],
+        'Colorado': ['Colorado', 'CO']
+    }
+
+    # Indian States for better India location detection
+    INDIAN_STATES = {
+        'Gujarat': ['Gujarat'],
+        'Maharashtra': ['Maharashtra', 'Mumbai', 'Pune'],
+        'Delhi': ['Delhi', 'New Delhi'],
+        'Karnataka': ['Karnataka', 'Bangalore', 'Bengaluru'],
+        'Tamil Nadu': ['Tamil Nadu', 'Chennai'],
+        'Uttar Pradesh': ['Uttar Pradesh', 'UP'],
+        'West Bengal': ['West Bengal', 'Kolkata'],
+        'Rajasthan': ['Rajasthan', 'Jaipur'],
+        'Madhya Pradesh': ['Madhya Pradesh', 'MP'],
+        'Kerala': ['Kerala'],
+        'Punjab': ['Punjab'],
+        'Haryana': ['Haryana'],
+        'Bihar': ['Bihar'],
+        'Andhra Pradesh': ['Andhra Pradesh', 'Hyderabad'],
+        'Telangana': ['Telangana']
+    }
 
     # Source categorization mapping
     SOURCE_CATEGORY_MAP = {
@@ -90,11 +152,12 @@ class NewsAPIIngestion:
         
         # Initialize similarity model
         self.similarity_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.similarity_threshold = 0.52  # Optimized for global news
-        logger.info("✅ Loaded similarity detection model (threshold: 0.55)")
+        self.similarity_threshold = 0.52
+        logger.info("✅ Loaded similarity detection model (threshold: 0.52)")
         
         self.stats = {
             'fetched': 0, 'filtered': 0, 'inserted': 0, 'duplicates': 0,
+            'incidents_created': 0, 'incidents_updated': 0,
             'by_category': {},
             'by_incident': {}
         }
@@ -115,20 +178,16 @@ class NewsAPIIngestion:
         nid = self._normalize(raw_id)
         nname = self._normalize(raw_name)
 
-        # Exact id match
         if nid and nid in self.SOURCE_CATEGORY_MAP:
             return self.SOURCE_CATEGORY_MAP[nid]
 
-        # Exact name match
         if nname and nname in self.SOURCE_CATEGORY_MAP:
             return self.SOURCE_CATEGORY_MAP[nname]
 
-        # Partial match
         for key, category in self.SOURCE_CATEGORY_MAP.items():
             if key in nname or key in nid:
                 return category
 
-        # Fallback
         if 'gov' in nname or 'gov' in nid or 'press' in nname:
             return 'political'
 
@@ -196,10 +255,7 @@ class NewsAPIIngestion:
         return set(text.split())
 
     def _classify_incident(self, article):
-        """
-        Improved incident classification using strong substring matching.
-        First matching category wins.
-        """
+        """Improved incident classification"""
         text = f"{article.get('title','')} {article.get('description','')} {article.get('content','')}".lower()
 
         RULES = [
@@ -209,42 +265,35 @@ class NewsAPIIngestion:
                 'police','custody','investigation','suspect','charged','court',
                 'kidnap','kidnapping','violence','stab','stabbing'
             ]),
-
             ('Politics', [
                 'election','elections','minister','government','parliament',
                 'policy','president','senate','vote','voting','bill','law',
                 'cabinet','congress','political','campaign'
             ]),
-
             ('International', [
                 'war','conflict','diplomacy','summit','sanctions','global',
                 'international','military','border','ceasefire','foreign',
                 'tensions','alliance'
             ]),
-
             ('Business', [
                 'company','market','economy','economic','investment','revenue',
                 'stocks','trade','business','profit','loss','shares','ipo',
                 'corporate','industry','finance','bank','banking'
             ]),
-
             ('Technology', [
                 'ai','artificial intelligence','software','startup','cyber',
                 'tech','technology','app','digital','data','hacking',
                 'cyberattack','innovation','device'
             ]),
-
             ('Health', [
                 'hospital','virus','vaccine','disease','covid','health',
                 'medical','infection','doctor','treatment','surgery'
             ]),
-
             ('Weather', [
                 'flood','flooding','cyclone','storm','heatwave','earthquake',
                 'wildfire','hurricane','rain','snow','temperature',
                 'climate','weather','monsoon'
             ]),
-
             ('Sports', [
                 'match','tournament','cricket','football','league',
                 'championship','sports','final','semi final','goal',
@@ -260,69 +309,43 @@ class NewsAPIIngestion:
 
     def _extract_location(self, article):
         """
-        Extract location using word boundary matching only.
-        No greedy regex patterns.
+        Extract location: Priority = State > Country > Global
+        Returns format: "State, Country" or "Country"
         """
         text = f"{article.get('title', '')} {article.get('description', '')}"
         
-        # Check city list using word boundary
-        for city in self.CITIES:
-            if re.search(rf'\b{re.escape(city)}\b', text, re.IGNORECASE):
-                return city
-
-        # Check country list using word boundary
-        for country in self.COUNTRIES:
-            if re.search(rf'\b{re.escape(country)}\b', text, re.IGNORECASE):
-                return country
-
+        detected_country = None
+        detected_state = None
+        
+        # Step 1: Check US States first
+        for state_name, variants in self.US_STATES.items():
+            for variant in variants:
+                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
+                    detected_state = state_name
+                    detected_country = 'United States'
+                    return f"{detected_state}, {detected_country}"
+        
+        # Step 2: Check Indian States
+        for state_name, variants in self.INDIAN_STATES.items():
+            for variant in variants:
+                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
+                    detected_state = state_name
+                    detected_country = 'India'
+                    return f"{detected_state}, {detected_country}"
+        
+        # Step 3: Check Countries (if no state found)
+        for country_name, variants in self.COUNTRIES.items():
+            for variant in variants:
+                if re.search(rf'\b{re.escape(variant)}\b', text, re.IGNORECASE):
+                    return country_name
+        
         # Fallback
         return 'Global'
 
-    def _check_similarity_with_embedding(self, article_embedding, recent_news_embeddings):
-        """
-        Check if article is similar to recent news using pre-calculated embedding.
-        Compares with both DB articles AND articles saved earlier in same batch.
-        
-        Args:
-            article_embedding: Pre-calculated embedding for new article
-            recent_news_embeddings: Dict {news_id: (embedding, group_id)}
-            
-        Returns:
-            tuple: (is_similar, original_group_id, similarity_score)
-        """
-        try:
-            if not recent_news_embeddings:
-                return False, None, 0.0
-            
-            # Compare with each recent article (DB + same batch)
-            max_similarity = 0.0
-            most_similar_group_id = None
-            
-            for news_id, (existing_embedding, group_id) in recent_news_embeddings.items():
-                # Calculate cosine similarity
-                similarity = cosine_similarity(
-                    article_embedding.reshape(1, -1),
-                    existing_embedding.reshape(1, -1)
-                )[0][0]
-                
-                if similarity > max_similarity:
-                    max_similarity = similarity
-                    most_similar_group_id = group_id
-            
-            # Check if similar enough (0.60 threshold)
-            is_similar = max_similarity >= self.similarity_threshold
-            
-            return is_similar, most_similar_group_id, float(max_similarity)
-            
-        except Exception as e:
-            logger.error(f"Error in similarity check: {e}")
-            return False, None, 0.0
-
     def _process_and_save(self, articles):
-        """Process articles with improved classification and save to database"""
+        """Process articles and save to database"""
         print(f"\n💾 Processing and saving {len(articles)} articles...")
 
-        # 🔥 STEP 1: Preload recent news (last 5 days)
         days_ago = datetime.utcnow() - timedelta(days=5)
         recent_news = News.query.filter(
             News.published_date >= days_ago.date()
@@ -331,7 +354,7 @@ class NewsAPIIngestion:
         recent_news_embeddings = {}
 
         if recent_news:
-            print(f"   📊 Pre-calculating embeddings for {len(recent_news)} recent articles (last 5 days)...")
+            print(f"   📊 Pre-calculating embeddings for {len(recent_news)} recent articles...")
             texts = [f"{n.title} {n.summary or ''}" for n in recent_news]
             embeddings = self.similarity_model.encode(texts)
 
@@ -341,7 +364,6 @@ class NewsAPIIngestion:
                     n.group_id or n.news_id
                 )
         
-        # 🔥 STEP 2: Batch encode NEW API articles
         print(f"   🚀 Batch encoding new articles...")
         valid_articles = [a for a in articles if self._is_valid_article(a)]
         new_texts = [
@@ -353,7 +375,6 @@ class NewsAPIIngestion:
 
         saved_news_ids = []
 
-        # Process each article with pre-calculated embeddings
         for idx, article in enumerate(valid_articles):
             try:
                 new_embedding = new_embeddings[idx]
@@ -362,19 +383,16 @@ class NewsAPIIngestion:
                 if not url:
                     continue
 
-                # Duplicate check
                 if News.query.filter_by(url=url).first():
                     self.stats['duplicates'] += 1
                     continue
 
-                # Extract location using improved method
+                # Extract location (State, Country format)
                 location = self._extract_location(article)
 
-                # Classify incident type with 2+ keyword matching
                 incident_type = self._classify_incident(article)
                 self.stats['by_incident'][incident_type] = self.stats['by_incident'].get(incident_type, 0) + 1
 
-                # Get or create source
                 source_obj = article.get('source', {}) or {}
                 source_name = source_obj.get('name') or 'Unknown'
                 category = self._get_source_category(source_obj)
@@ -389,17 +407,14 @@ class NewsAPIIngestion:
                         source.category = category
                         db.session.flush()
 
-                # Track category stats
                 self.stats['by_category'][category] = self.stats['by_category'].get(category, 0) + 1
 
-                # Parse published date
                 published_at = article.get('publishedAt')
                 try:
                     pub_date = datetime.fromisoformat(published_at.replace('Z', '+00:00')).date()
                 except Exception:
                     pub_date = datetime.now().date()
 
-                # Check similarity with existing news AND batch articles
                 max_similarity = 0.0
                 matched_group_id = None
 
@@ -413,9 +428,6 @@ class NewsAPIIngestion:
                         max_similarity = similarity
                         matched_group_id = group_id
 
-                print(f"   🔍 Similarity Score: {max_similarity:.3f}")
-
-                # Create news record
                 news = News(
                     source_id=source.source_id,
                     title=(article.get('title') or '')[:500],
@@ -429,20 +441,17 @@ class NewsAPIIngestion:
                 )
 
                 db.session.add(news)
-                db.session.flush()  # Get news_id
+                db.session.flush()
 
-                # Set group_id based on similarity (threshold: 0.55)
                 if max_similarity >= self.similarity_threshold:
                     news.group_id = matched_group_id
-                    print(f"  🔗 Linked to group {matched_group_id} (similarity: {max_similarity:.3f}) | {incident_type} | {location}")
+                    print(f"  🔗 Group {matched_group_id} (sim: {max_similarity:.2f}) | {incident_type} | {location}")
                 else:
                     news.group_id = news.news_id
-                    print(f"  ✨ New story (group: {news.news_id}) | {incident_type} | {location}")
+                    print(f"  ✨ New story {news.news_id} | {incident_type} | {location}")
 
-                # Flush again to persist group_id
                 db.session.flush()
                 
-                # 🔥 ADD NEW ARTICLE INTO MEMORY (CRITICAL FIX)
                 recent_news_embeddings[news.news_id] = (
                     new_embedding,
                     news.group_id
@@ -452,19 +461,114 @@ class NewsAPIIngestion:
                 self.stats['inserted'] += 1
 
             except Exception as e:
-                print(f"   ❌ Error saving article: {str(e)[:200]}")
+                print(f"   ❌ Error: {str(e)[:200]}")
                 db.session.rollback()
                 continue
 
         try:
             db.session.commit()
-            print(f"✅ Saved {self.stats['inserted']} global news articles!")
+            print(f"✅ Saved {self.stats['inserted']} articles!")
         except Exception as e:
             print(f"❌ Commit error: {e}")
             db.session.rollback()
             return []
 
         return saved_news_ids
+
+    def _create_incidents(self, news_ids):
+        """Create incidents from saved news"""
+        if not news_ids:
+            print("\n⚠️  No news IDs to create incidents")
+            return
+
+        print(f"\n🔗 Creating incidents from {len(news_ids)} news articles...")
+        
+        try:
+            news_list = News.query.filter(News.news_id.in_(news_ids)).all()
+            print(f"   📰 Retrieved {len(news_list)} news records")
+
+            # Group by (incident_type, location) for better grouping
+            groups = {}
+            for news in news_list:
+                key = (news.incident_type, news.location)
+                groups.setdefault(key, []).append(news)
+
+            print(f"   📊 Grouped into {len(groups)} incident groups:")
+            for (itype, loc), articles in groups.items():
+                print(f"      - {itype} at {loc}: {len(articles)} articles")
+
+            for (itype, loc), articles in groups.items():
+                try:
+                    dates = [a.published_date for a in articles if a.published_date]
+                    if not dates:
+                        continue
+                    
+                    min_date = min(dates)
+                    max_date = max(dates)
+                    
+                    # Check existing incident (7-day window, same type and location)
+                    existing = Incident.query.filter(
+                        Incident.incident_type == itype,
+                        Incident.location == loc,
+                        Incident.first_reported >= (min_date - timedelta(days=7)),
+                        Incident.last_reported <= (max_date + timedelta(days=7))
+                    ).first()
+
+                    if existing:
+                        for news in articles:
+                            link = IncidentNews.query.filter_by(
+                                incident_id=existing.incident_id,
+                                news_id=news.news_id
+                            ).first()
+                            
+                            if not link:
+                                db.session.add(IncidentNews(
+                                    incident_id=existing.incident_id,
+                                    news_id=news.news_id,
+                                    reported_at=news.published_date or datetime.now()
+                                ))
+
+                        if min_date < existing.first_reported:
+                            existing.first_reported = min_date
+                        if max_date > existing.last_reported:
+                            existing.last_reported = max_date
+
+                        self.stats['incidents_updated'] += 1
+                        print(f"   ✅ Updated: {itype} at {loc} ({len(articles)} articles)")
+                    else:
+                        incident = Incident(
+                            incident_type=itype,
+                            location=loc,
+                            first_reported=min_date,
+                            last_reported=max_date
+                        )
+                        db.session.add(incident)
+                        db.session.flush()
+
+                        for news in articles:
+                            db.session.add(IncidentNews(
+                                incident_id=incident.incident_id,
+                                news_id=news.news_id,
+                                reported_at=news.published_date or datetime.now()
+                            ))
+
+                        self.stats['incidents_created'] += 1
+                        print(f"   ✅ Created: {itype} at {loc} ({len(articles)} articles)")
+                
+                except Exception as e:
+                    print(f"   ❌ Error creating incident for {itype} at {loc}: {e}")
+                    continue
+
+            db.session.commit()
+            print(f"\n   📊 Total: {self.stats['incidents_created']} new, {self.stats['incidents_updated']} updated")
+            
+            incident_count = Incident.query.count()
+            link_count = IncidentNews.query.count()
+            print(f"   ✅ Verification: {incident_count} incidents, {link_count} links in database")
+
+        except Exception as e:
+            print(f"   ❌ Critical error in _create_incidents: {e}")
+            db.session.rollback()
 
     def run_ingestion(self, days=30, page_size=100, max_pages=2):
         """Run complete pipeline"""
@@ -473,6 +577,10 @@ class NewsAPIIngestion:
             return self.stats
 
         saved_ids = self._process_and_save(articles)
+        
+        if saved_ids:
+            self._create_incidents(saved_ids)
+        
         return self.stats
 
     def print_stats(self):
@@ -483,6 +591,7 @@ class NewsAPIIngestion:
         print(f"   Fetched:       {self.stats['fetched']}")
         print(f"   Saved:         {self.stats['inserted']}")
         print(f"   Duplicates:    {self.stats['duplicates']}")
+        print(f"   Incidents:     {self.stats['incidents_created']} new, {self.stats['incidents_updated']} updated")
 
         print(f"\n📰 Sources Distribution:")
         total = sum(self.stats['by_category'].values())
