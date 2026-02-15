@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fetch Gujarat news - Complete automated solution
+Fetch Global World News - Complete automated solution with similarity detection
 """
 import sys
 import os
@@ -12,9 +12,9 @@ from app.services.newsapi_ingestion import NewsAPIIngestion
 
 
 def fetch_newsapi():
-    """Fetch news and create incidents automatically"""
+    """Fetch global news and create incidents automatically"""
     print("=" * 60)
-    print("📰 GUJARAT NEWS FETCHER (All-in-One)")
+    print("🌍 GLOBAL NEWS FETCHER (With Similarity Detection)")
     print("=" * 60)
     
     api_key = os.getenv('NEWSAPI_KEY')
@@ -27,7 +27,9 @@ def fetch_newsapi():
     
     with app.app_context():
         ingestion = NewsAPIIngestion(api_key)
-        ingestion.run_ingestion(days=7, page_size=100, max_pages=2)
+        # Changed: days=7 → days=30 for more global coverage
+        # Changed: max_pages for more articles
+        ingestion.run_ingestion(days=30, page_size=100, max_pages=2)
         ingestion.print_stats()
 
 

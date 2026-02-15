@@ -19,6 +19,7 @@ class News(db.Model):
     published_date = db.Column(db.Date)
     image_url = db.Column(db.String(1000))  # Store image URL
     url = db.Column(db.Text, unique=True)  # ⭐ NEW: Article URL
+    group_id = db.Column(db.Integer, nullable=True)  # Add this line
     
     # Relationships
     source = db.relationship('Source', backref='news')
@@ -37,5 +38,6 @@ class News(db.Model):
             'published_date': self.published_date.isoformat() if self.published_date else None,
             'source': self.source.source_name if self.source else None,
             'image_url': self.image_url,    
-            'url': self.url  # ⭐ NEW
+            'url': self.url,  # ⭐ NEW
+            'group_id': self.group_id  # Add this line
         }
