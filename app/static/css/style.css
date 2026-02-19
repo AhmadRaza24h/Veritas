@@ -1,3 +1,12 @@
+/* =========================================
+   BASE STYLES & UTILS
+   ========================================= */
+
+/* Smooth theme transition */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 /* Image styling for news cards */
 .card-img-top {
     transition: transform 0.3s ease;
@@ -9,6 +18,7 @@
 
 .card {
     overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Fallback placeholder styling */
@@ -25,4 +35,244 @@
 img[alt] {
     font-size: 0.875rem;
     color: #6c757d;
+}
+
+/* =========================================
+   DARK MODE OVERRIDES (GitHub Theme)
+   ========================================= */
+
+[data-bs-theme="dark"] {
+    /* Bootstrap Overrides */
+    --bs-body-bg: #0d1117;
+    --bs-body-color: #c9d1d9;
+    --bs-heading-color: #ffffff;
+    --bs-link-color: #58a6ff;
+    --bs-link-hover-color: #79c0ff;
+    --bs-border-color: #30363d;
+
+    /* Custom Semantic Variables */
+    --card-bg: #161b22;
+    --card-border: #30363d;
+    --header-bg: #010409;
+    --input-bg: #0d1117;
+    --input-border: #30363d;
+    --input-focus-border: #58a6ff;
+    --input-placeholder: #8b949e;
+    --text-muted: #8b949e;
+    --hover-bg: #1f2428;
+}
+
+/* 1. TYPOGRAPHY */
+[data-bs-theme="dark"] h1,
+[data-bs-theme="dark"] h2,
+[data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4,
+[data-bs-theme="dark"] h5,
+[data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .h1,
+[data-bs-theme="dark"] .h2,
+[data-bs-theme="dark"] .h3,
+[data-bs-theme="dark"] .h4,
+[data-bs-theme="dark"] .h5,
+[data-bs-theme="dark"] .h6 {
+    color: var(--bs-heading-color) !important;
+}
+
+[data-bs-theme="dark"] .text-muted,
+[data-bs-theme="dark"] small {
+    color: var(--text-muted) !important;
+}
+
+/* 2. LAYOUT & CONTAINERS */
+[data-bs-theme="dark"] .card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+}
+
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer,
+[data-bs-theme="dark"] .list-group-item {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .card:hover {
+    border-color: var(--bs-link-color);
+    box-shadow: 0 0 15px rgba(88, 166, 255, 0.15) !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action:hover,
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .news-item:hover {
+    background-color: var(--hover-bg) !important;
+    color: var(--bs-heading-color) !important;
+}
+
+/* 3. NAVBAR & NAVIGATION */
+[data-bs-theme="dark"] .navbar {
+    background-color: var(--header-bg) !important;
+    border-bottom: 1px solid var(--card-border);
+}
+
+[data-bs-theme="dark"] .navbar-brand,
+[data-bs-theme="dark"] .nav-link:hover,
+[data-bs-theme="dark"] .nav-link.active {
+    color: var(--bs-heading-color) !important;
+}
+
+[data-bs-theme="dark"] .nav-link {
+    color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: 0 8px 24px rgba(1, 4, 9, 0.5);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: var(--bs-link-color);
+    /* Overridden specifically for dropdown hover if needed, or use hover-bg */
+}
+
+[data-bs-theme="dark"] .dropdown-divider {
+    border-top-color: var(--card-border);
+}
+
+/* 4. FORMS */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: #f0f7fe;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+    color: var(--input-placeholder);
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: var(--input-bg);
+    border-color: var(--input-focus-border);
+    color: #e6edf3;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+}
+
+[data-bs-theme="dark"] .form-label {
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #21262d;
+    border-color: var(--input-border);
+    color: var(--bs-body-color);
+}
+
+/* 5. BADGES */
+[data-bs-theme="dark"] .badge {
+    border: 1px solid transparent;
+}
+
+[data-bs-theme="dark"] .badge.bg-primary {
+    background-color: rgba(56, 139, 253, 0.15) !important;
+    color: #58a6ff !important;
+    border-color: rgba(56, 139, 253, 0.4);
+}
+
+[data-bs-theme="dark"] .badge.bg-secondary,
+[data-bs-theme="dark"] .badge.bg-light.text-dark {
+    background-color: rgba(110, 118, 129, 0.4) !important;
+    color: var(--bs-body-color) !important;
+    border-color: rgba(240, 246, 252, 0.1);
+}
+
+[data-bs-theme="dark"] .badge.bg-success {
+    background-color: rgba(46, 160, 67, 0.15) !important;
+    color: #3fb950 !important;
+    border-color: rgba(46, 160, 67, 0.4);
+}
+
+[data-bs-theme="dark"] .badge.bg-danger {
+    background-color: rgba(248, 81, 73, 0.15) !important;
+    color: #f85149 !important;
+    border-color: rgba(248, 81, 73, 0.4);
+}
+
+[data-bs-theme="dark"] .badge.bg-warning {
+    background-color: rgba(187, 128, 9, 0.15) !important;
+    color: #d2a106 !important;
+    border-color: rgba(187, 128, 9, 0.4);
+}
+
+[data-bs-theme="dark"] .badge.bg-info {
+    background-color: rgba(56, 139, 253, 0.15) !important;
+    color: #58a6ff !important;
+    border-color: rgba(56, 139, 253, 0.4);
+}
+
+/* 6. BUTTONS */
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: var(--bs-body-color);
+    border-color: var(--card-border);
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: var(--card-border);
+    color: var(--bs-heading-color);
+}
+
+[data-bs-theme="dark"] .btn-light {
+    background-color: #21262d;
+    border-color: var(--card-border);
+    color: var(--bs-body-color);
+}
+
+/* 7. SPECIALIZED COMPONENTS */
+[data-bs-theme="dark"] .credibility-ring::before {
+    /* Use darker gray for the empty part of the ring */
+    --bs-light-rgb: 48, 54, 61;
+    /* #30363d */
+    background: conic-gradient(var(--ring-color) calc(var(--score) * 1%), #21262d calc(var(--score) * 1%));
+}
+
+[data-bs-theme="dark"] .accordion-button {
+    background-color: var(--card-bg);
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: rgba(56, 139, 253, 0.15);
+    color: #58a6ff;
+}
+
+[data-bs-theme="dark"] .accordion-item {
+    background-color: transparent;
+    border-color: var(--card-border);
+}
+
+[data-bs-theme="dark"] .incident-header {
+    background: linear-gradient(135deg, #1f6feb 0%, #4c2889 100%);
+}
+
+[data-bs-theme="dark"] footer.bg-dark {
+    background-color: var(--header-bg) !important;
+    border-top: 1px solid var(--card-border);
+}
+
+/* 8. LEGACY COMPATIBILITY & FIXES */
+/* Ensure Login/Register/News explicitly use these if they were relying on [data-theme] before */
+[data-bs-theme="dark"] .news-content,
+[data-bs-theme="dark"] .news-summary {
+    color: var(--bs-body-color) !important;
+}
+
+[data-bs-theme="dark"] .auth-links p,
+[data-bs-theme="dark"] .text-center p {
+    color: var(--bs-body-color) !important;
 }
