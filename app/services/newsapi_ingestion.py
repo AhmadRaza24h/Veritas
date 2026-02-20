@@ -2,6 +2,7 @@
 NewsAPI Ingestion Service for Global World News
 With improved similarity detection, incident classification, and location extraction
 """
+import string
 import requests
 import re
 from collections import defaultdict
@@ -480,216 +481,221 @@ class NewsAPIIngestion:
 
 
 
+
+# ==========================================================
+# PROFESSIONAL INCIDENT CLASSIFIER (Production Version)
+# ==========================================================
+
+
+
     def _classify_incident(self, article):
 
-        text = f"{article.get('title','')} {article.get('description','')}".lower()
+        title = (article.get("title") or "").lower()
+        description = (article.get("description") or "").lower()
+        text = title + " " + description
 
-        # ------------------------------------------------------------
-        # Override Anchors (High Confidence)
-        # ------------------------------------------------------------
+        if not text.strip():
+            return "General"
 
-        OVERRIDES = {
-            "Environment": ["earthquake", "hurricane", "cyclone"],
-            "Sports": ["world cup", "olympics", "championship final"],
-            "Business": ["ipo", "earnings report", "quarterly results"],
-            "Technology": ["ransomware attack", "major data breach"],
-            "Infrastructure": ["plane crash", "train derailment"],
-            "Law": ["supreme court ruling"],
-            "Politics": ["presidential election results"],
+        # Remove punctuation for safe word matching
+        translator = str.maketrans("", "", string.punctuation)
+        clean_text = text.translate(translator)
+        words = clean_text.split()
+
+        scores = defaultdict(int)
+
+        # --------------------------------------------------
+        # SHORT WORDS (Handled Safely)
+        # --------------------------------------------------
+
+        SHORT_WORD_KEYWORDS = {
+            "ai": "Technology",
+            "us": "International",
+            "uk": "International",
+            "war": "International"
         }
 
-        for category, phrases in OVERRIDES.items():
-            for phrase in phrases:
-                if re.search(rf"\b{re.escape(phrase)}\b", text):
-                    return category
+        for short_word, category in SHORT_WORD_KEYWORDS.items():
+            if short_word in words:
+                scores[category] += words.count(short_word) * 3
 
-        # ------------------------------------------------------------
-        # Keyword Dictionary (Balanced & Clean)
-        # ------------------------------------------------------------
+        # --------------------------------------------------
+        # HARD OVERRIDES
+        # --------------------------------------------------
+
+        if any(w in text for w in ["earthquake", "avalanche", "cyclone", "flood", "wildfire", "hurricane"]):
+            return "Environment"
+
+        if any(w in text for w in ["world cup", "olympics", "champions league"]):
+            return "Sports"
+
+        if any(w in text for w in ["pandemic", "epidemic", "long covid"]):
+            return "Health"
+
+        # --------------------------------------------------
+        # MAIN CATEGORY KEYWORDS
+        # --------------------------------------------------
 
         CATEGORY_KEYWORDS = {
 
-    "Crime": [
-        "murder", "homicide", "rape", "robbery",
-        "fraud", "shooting", "stabbing",
-        "arrest", "suspect", "charged",
-        "indictment", "kidnapping",
-        "extortion", "smuggling",
-        "drug trafficking", "gang violence",
-        "firearm", "criminal network"
-    ],
-
-    "Politics": [
-        "election", "parliament", "president",
-        "prime minister", "government",
-        "minister", "policy", "campaign",
-        "legislation", "senate",
-        "congress", "cabinet",
-        "coalition", "voter turnout",
-        "referendum", "ballot",
-        "political party", "governance"
-    ],
-
-    "International": [
-        "war", "conflict", "sanctions",
-        "military", "troops", "border",
-        "ceasefire", "diplomatic",
-        "embassy", "foreign relations",
-        "peace talks", "missile",
-        "alliance", "defense pact"
+    "Technology": [
+        "iphone", "android", "google", "openai",
+        "ethereum", "bitcoin", "xrp",
+        "cryptocurrency", "blockchain",
+        "artificial intelligence", "machine learning",
+        "quantum", "data center", "semiconductor",
+        "software", "cloud", "cyber",
+        "vivo", "samsung", "playstation", "ps5",
+        "game update", "minecraft", "app", "camera",
+        "smartphone", "tech company"
     ],
 
     "Business": [
-        "ipo", "earnings", "quarterly results",
-        "stocks", "stock market",
-        "share price", "investors",
-        "merger", "acquisition",
-        "investment", "revenue",
-        "profit", "loss",
-        "layoffs", "corporate",
-        "inflation", "economic growth",
-        "gdp", "bankruptcy"
+        "ipo", "merger", "acquisition",
+        "earnings", "profit", "loss",
+        "stock", "shares", "market",
+        "investment", "venture capital",
+        "funding", "economy", "inflation",
+        "digital asset", "public reserve",
+        "financial results", "interim report",
+        "consolidated report", "investor webinar",
+        "revenue", "brand", "collaboration"
     ],
 
-    "Technology": [
-        "artificial intelligence", "machine learning",
-        "cybersecurity", "ransomware",
-        "data breach", "malware",
-        "hacking", "semiconductor",
-        "startup", "software",
-        "tech company", "cloud computing",
-        "blockchain", "robotics",
-        "satellite", "space mission",
-        "nasa", "chip manufacturing"
+    "Politics": [
+        "election", "prime minister", "president",
+        "parliament", "assembly",
+        "senate", "white house",
+        "bill passed", "government policy",
+        "minister", "resign", "protest",
+        "authoritarian", "governor"
     ],
 
-    "Environment": [
-        "earthquake", "flood", "wildfire",
-        "hurricane", "cyclone", "drought",
-        "climate change", "global warming",
-        "carbon emissions", "pollution",
-        "deforestation", "heatwave",
-        "monsoon", "environmental policy",
-        "sustainability", "renewable energy"
+    "International": [
+        "un probe", "un experts", "united nations",
+        "foreign ministry", "bilateral talks",
+        "international summit", "border conflict",
+        "middle east", "global tensions",
+        "genocide", "geneva", "sudan",
+        "darfur", "reuters"
+    ],
+
+    "Crime": [
+        "murder", "abuse", "genocide",
+        "terror attack", "bomb blast",
+        "fraud case", "money laundering",
+        "police investigation", "corruption",
+        "defendants guilty"
     ],
 
     "Health": [
-        "virus", "vaccine", "pandemic",
-        "epidemic", "outbreak",
-        "hospital", "medical",
-        "health ministry",
-        "infection", "disease",
-        "treatment", "clinical trial",
-        "public health", "mental health"
+        "vaccine", "clinical trial",
+        "medical research", "hospital",
+        "cancer screening", "disease",
+        "brain fog", "pregnancy"
     ],
 
     "Sports": [
-        "match", "tournament", "league",
-        "championship", "final",
-        "semi-final", "world cup",
-        "olympics", "goal",
-        "athlete", "coach",
-        "cricket", "football",
-        "soccer", "tennis",
-        "basketball", "nba",
-        "nfl", "ipl"
+        "football", "cricket", "league",
+        "tournament", "club", "goal",
+        "championship", "season",
+        "coach", "defeat",
+        "verstappen", "honda",
+        "aston martin", "formula 1",
+        "chelsea", "united",
+        "transfer fee", "press conference"
     ],
 
     "Entertainment": [
-        "movie", "film", "box office",
-        "celebrity", "concert",
-        "album release", "actor",
-        "actress", "award ceremony",
-        "music festival", "streaming platform",
-        "hollywood", "bollywood"
-    ],
-
-    "Infrastructure": [
-        "plane crash", "aircraft accident",
-        "train derailment",
-        "bridge collapse",
-        "building collapse",
-        "industrial explosion",
-        "factory blast",
-        "road accident",
-        "metro disruption",
-        "construction failure"
+        "taylor swift", "u2", "movie",
+        "film", "music", "album",
+        "concert", "box office",
+        "fashion week", "comic",
+        "magazine", "festival",
+        "actor", "actress",
+        "pregnancy announcement",
+        "instagram", "drama"
     ],
 
     "Law": [
-        "court ruling", "supreme court",
-        "legal appeal", "sentencing",
-        "judicial review", "trial",
-        "lawsuit", "verdict",
-        "bail hearing", "constitutional challenge"
+        "supreme court", "high court",
+        "court hearing", "verdict",
+        "lawsuit", "legal petition",
+        "probe into corruption"
     ],
 
     "Education": [
-        "university", "school",
-        "curriculum", "exam",
-        "board results",
-        "education policy",
-        "student protest",
-        "academic year",
-        "scholarship"
+        "university", "exam",
+        "student", "board exam",
+        "education policy"
     ],
 
-    "Energy": [
-        "oil prices", "gas prices",
-        "energy crisis", "opec",
-        "power grid", "nuclear energy",
-        "solar power", "wind energy",
-        "fuel supply", "electricity outage",
-        "refinery"
+    "Infrastructure": [
+        "metro", "railway",
+        "airport", "highway",
+        "construction project",
+        "urban design"
     ],
 
-    "Social Issues": [
-        "protest", "demonstration",
-        "civil unrest", "human rights",
-        "gender equality", "racism",
-        "discrimination", "labor strike",
-        "activist", "social justice"
+    "Environment": [
+        "climate change", "global warming",
+        "pollution", "heatwave"
     ]
 }
-
-        # ------------------------------------------------------------
-        # Count Unique Keyword Matches Per Category
-        # ------------------------------------------------------------
-
-        category_counts = defaultdict(int)
+        # --------------------------------------------------
+        # SCORING (Safe)
+        # --------------------------------------------------
 
         for category, keywords in CATEGORY_KEYWORDS.items():
             for keyword in keywords:
-                if re.search(rf"\b{re.escape(keyword)}\b", text):
-                    category_counts[category] += 1
+                if keyword in text:
+                    scores[category] += text.count(keyword) * 3
 
-        if not category_counts:
-            return "General"
+        # --------------------------------------------------
+        # BOOSTS
+        # --------------------------------------------------
 
-        # ------------------------------------------------------------
-        # Determine Winner
-        # ------------------------------------------------------------
+        if any(w in words for w in ["match", "league", "club", "goal", "season"]):
+            scores["Sports"] += 2
 
-        sorted_categories = sorted(
-            category_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        if any(w in words for w in ["market", "stock", "shares"]):
+            scores["Business"] += 2
 
-        top_category, top_count = sorted_categories[0]
+        if "court" in words:
+            scores["Law"] += 2
 
-        # Minimum threshold: at least 2 keyword matches
-        if top_count < 2:
-            return "General"
+        # --------------------------------------------------
+        # DECISION
+        # --------------------------------------------------
 
-        # Tie handling (difference <= 1)
-        if len(sorted_categories) > 1:
-            second_category, second_count = sorted_categories[1]
+        if scores:
+            sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            top_category, top_score = sorted_scores[0]
 
-            if abs(top_count - second_count) <= 1:
-                return "General"
+            if top_score >= 3:
+                return top_category
 
-        return top_category
+        # --------------------------------------------------
+        # FALLBACK
+        # --------------------------------------------------
+
+        if any(w in words for w in ["iphone", "google", "crypto", "bitcoin"]):
+            return "Technology"
+
+        if any(w in words for w in ["movie", "music", "celebrity"]):
+            return "Entertainment"
+
+        if any(w in words for w in ["football", "cricket", "match"]):
+            return "Sports"
+
+        if any(w in words for w in ["economy", "investment"]):
+            return "Business"
+
+        if "court" in words:
+            return "Law"
+
+        return "General"
+
 
 
     def _extract_location(self, article):

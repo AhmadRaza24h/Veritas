@@ -276,3 +276,44 @@ img[alt] {
 [data-bs-theme="dark"] .text-center p {
     color: var(--bs-body-color) !important;
 }
+
+/* =========================================
+   INCIDENT CATEGORY DROPDOWN STYLES
+   ========================================= */
+.category-icon {
+    font-size: 1.05rem; /* consistent icon size */
+    width: 1.05rem;
+    height: 1.05rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.incidents-dropdown {
+    max-height: 60vh; /* allow scrolling if too tall */
+    overflow-y: auto;
+    min-width: 220px;
+}
+
+.dropdown-item.d-flex .category-icon {
+    line-height: 1; /* vertical center with text */
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dropdown-item.active {
+    background-color: rgba(0, 123, 255, 0.08);
+    font-weight: 600;
+}
+
+@media (max-width: 576px) {
+    .incidents-dropdown {
+        max-height: 50vh;
+    }
+    .category-icon {
+        font-size: 1rem;
+    }
+}

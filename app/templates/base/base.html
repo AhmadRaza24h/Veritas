@@ -39,59 +39,92 @@
                         </a>
                     </li>
 
-                    <!-- Incidents Dropdown -->
+                    <!-- Incidents Dropdown (fixed categories + icons) -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="incidentsDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-exclamation-triangle"></i> Incidents
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="incidentsDropdown">
+                        {% set current_type = request.args.get('type') %}
+                        <ul class="dropdown-menu incidents-dropdown p-2" aria-labelledby="incidentsDropdown">
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Crime') }}">
-                                    <i class="bi bi-shield-exclamation text-danger"></i> Crime
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Technology' %}active{% endif %}" href="{{ url_for('news.news_list', type='Technology') }}">
+                                    <i class="bi bi-cpu category-icon text-info me-2"></i>
+                                    <span>Technology</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Politics') }}">
-                                    <i class="bi bi-bank text-dark"></i> Politics
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Business' %}active{% endif %}" href="{{ url_for('news.news_list', type='Business') }}">
+                                    <i class="bi bi-briefcase category-icon text-primary me-2"></i>
+                                    <span>Business</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='International') }}">
-                                    <i class="bi bi-globe2 text-primary"></i> International
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Politics' %}active{% endif %}" href="{{ url_for('news.news_list', type='Politics') }}">
+                                    <i class="bi bi-bank category-icon text-secondary me-2"></i>
+                                    <span>Politics</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Business') }}">
-                                    <i class="bi bi-briefcase text-primary"></i> Business
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'International' %}active{% endif %}" href="{{ url_for('news.news_list', type='International') }}">
+                                    <i class="bi bi-globe2 category-icon text-primary me-2"></i>
+                                    <span>International</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Technology') }}">
-                                    <i class="bi bi-laptop text-info"></i> Technology
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Crime' %}active{% endif %}" href="{{ url_for('news.news_list', type='Crime') }}">
+                                    <i class="bi bi-shield-exclamation category-icon text-danger me-2"></i>
+                                    <span>Crime</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Health') }}">
-                                    <i class="bi bi-heart-pulse text-danger"></i> Health
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Health' %}active{% endif %}" href="{{ url_for('news.news_list', type='Health') }}">
+                                    <i class="bi bi-heart-pulse category-icon text-danger me-2"></i>
+                                    <span>Health</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Weather') }}">
-                                    <i class="bi bi-cloud-rain text-info"></i> Weather
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Sports' %}active{% endif %}" href="{{ url_for('news.news_list', type='Sports') }}">
+                                    <i class="bi bi-trophy category-icon text-warning me-2"></i>
+                                    <span>Sports</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list', type='Sports') }}">
-                                    <i class="bi bi-trophy text-warning"></i> Sports
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Entertainment' %}active{% endif %}" href="{{ url_for('news.news_list', type='Entertainment') }}">
+                                    <i class="bi bi-film category-icon text-secondary me-2"></i>
+                                    <span>Entertainment</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Law' %}active{% endif %}" href="{{ url_for('news.news_list', type='Law') }}">
+                                    <i class="bi bi-briefcase category-icon text-secondary me-2"></i>
+                                    <span>Law</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Education' %}active{% endif %}" href="{{ url_for('news.news_list', type='Education') }}">
+                                    <i class="bi bi-mortarboard category-icon text-primary me-2"></i>
+                                    <span>Education</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Infrastructure' %}active{% endif %}" href="{{ url_for('news.news_list', type='Infrastructure') }}">
+                                    <i class="bi bi-building category-icon text-secondary me-2"></i>
+                                    <span>Infrastructure</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center {% if current_type == 'Environment' %}active{% endif %}" href="{{ url_for('news.news_list', type='Environment') }}">
+                                    <i class="bi bi-tree category-icon text-success me-2"></i>
+                                    <span>Environment</span>
                                 </a>
                             </li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('news.news_list') }}">
-                                    <i class="bi bi-grid"></i> <strong>All Incidents</strong>
+                                <a class="dropdown-item d-flex align-items-center {% if not current_type %}active{% endif %}" href="{{ url_for('news.news_list') }}">
+                                    <i class="bi bi-grid category-icon me-2"></i> <strong>All Incidents</strong>
                                 </a>
                             </li>
                         </ul>
